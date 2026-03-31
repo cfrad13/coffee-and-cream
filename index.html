@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Coffee & Cream — Journal de barista</title>
+  <meta name="description" content="Journal de barista — recettes, chrono et dégustation">
+  <meta name="theme-color" content="#ae5630">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Coffee&Cream">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+<div id="screen-home" class="scr active">
+<div style="padding:1.75rem 1.5rem 1rem;">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;">
+<div><div style="font-size:24px;font-weight:500;letter-spacing:-0.5px;color:#3b2e22;">Coffee &amp; Cream</div><div style="font-size:11px;color:#9a8876;margin-top:3px;letter-spacing:1.5px;">JOURNAL DE BARISTA</div></div>
+<div style="width:40px;height:40px;background:#ebe0d0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;"><span id="bc-num" style="font-size:14px;font-weight:500;color:#ae5630;">0</span><span style="font-size:7px;color:#9a8876;letter-spacing:.5px;">BREWS</span></div>
+</div>
+<div style="display:flex;gap:0;margin-bottom:20px;background:#ebe0d0;border-radius:10px;padding:3px;">
+<button class="tab active" data-tab="recettes" onclick="switchTab('recettes')">Recettes</button>
+<button class="tab" data-tab="mesrecettes" onclick="switchTab('mesrecettes')">Mes recettes</button>
+<button class="tab" data-tab="favoris" onclick="switchTab('favoris')">Favoris</button>
+</div>
+<div id="tab-recettes"><div id="category-list"></div></div>
+<div id="tab-mesrecettes" style="display:none;"><button onclick="openQC()" class="create-btn">+ Créer une recette</button><div id="my-list"></div><div id="my-empty" class="empty-state">Aucune recette sauvegardée</div></div>
+<div id="tab-favoris" style="display:none;"><div id="fav-list"></div><div id="fav-empty" class="empty-state">Aucun favori</div></div>
+</div>
+</div>
+
+<div id="screen-sub" class="scr"><div style="padding:1.25rem 1.5rem;"><div class="top-bar"><button onclick="showScreen('home')" class="bk">&#8249;</button><span id="sub-title" class="tbt"></span><div style="width:20px"></div></div><div id="sub-list"></div></div></div>
+
+<div id="screen-recipe" class="scr">
+<div style="padding:1.25rem 1.5rem;">
+<div class="top-bar"><button onclick="goBack()" class="bk">&#8249;</button><span id="recipe-title" class="tbt"></span><div style="width:20px"></div></div>
+<div id="recipe-desc" style="font-size:13px;color:#7a6b5a;margin-bottom:1.25rem;line-height:1.5;"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+<div class="sp"><div class="spv" id="dose-val">18</div><div class="spl">g café</div></div>
+<div class="sp"><div class="spv" id="yield-val">36</div><div class="spl" id="yield-lbl">ml tasse</div></div>
+<div class="sp"><div class="spv" id="ratio-display">1:2</div><div class="spl">ratio</div></div>
+</div>
+<div id="milk-info" style="display:none;margin-bottom:12px;"></div>
+<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="ratio-label" class="sv"></span></div><input type="range" id="ratio-slider" class="rng"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="ratio-min"></span><span class="sh" id="ratio-max"></span></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="dose-slider-val" class="sv"></span></div><input type="range" id="dose-slider" class="rng"></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="liquid-fields"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture (grind)</div><div class="sr"><span class="sl">Grind size</span><span id="grind-size-val" class="sv"></span></div><input type="range" id="grind-size" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh">1 extra fin</span><span class="sh">40 très grossier</span></div><div style="margin-top:10px;"><div class="sr"><span class="sl">Temps de grind</span></div><input type="text" id="grind-time" placeholder="Ex: 30 sec, 1 min..." class="ti" style="margin-top:4px;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Paramètres</div><div id="params-info" style="font-size:12px;color:#5a4a3a;line-height:1.7;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="coffee-name" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'cn')"><div id="ac-cn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="coffee-roaster" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'ro')"><div id="ac-ro" class="ad"></div></div><input type="text" id="coffee-origin" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
+<div class="cd" style="margin-bottom:14px;"><div class="cl">Étapes</div><div id="steps-preview"></div></div>
+<button onclick="startTimer()" class="pri">Suivant</button>
+</div>
+</div>
+
+<div id="screen-timer" class="scr">
+<div style="padding:1.25rem 1.5rem;">
+<div class="top-bar"><button onclick="stopTimer();showScreen('recipe')" class="bk">&#8249;</button><span id="timer-title" class="tbt"></span><div style="width:20px"></div></div>
+<div style="text-align:center;margin:1.5rem 0;">
+<div style="position:relative;width:200px;height:200px;margin:0 auto;">
+<svg width="200" height="200" viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="#ebe0d0" stroke-width="4"/><circle id="prog" cx="100" cy="100" r="88" fill="none" stroke="#ae5630" stroke-width="4" stroke-linecap="round" stroke-dasharray="553" stroke-dashoffset="553" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset 0.3s;"/></svg>
+<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;"><div id="timer-display" style="font-size:44px;font-weight:500;color:#3b2e22;font-variant-numeric:tabular-nums;letter-spacing:1px;">0:00</div><div id="timer-step-name" style="font-size:12px;color:#ae5630;margin-top:2px;"></div></div>
+</div>
+<div id="timer-total" style="font-size:12px;color:#9a8876;margin-top:8px;"></div>
+</div>
+<div id="timer-steps" style="margin-bottom:1.25rem;"></div>
+<div style="display:flex;gap:10px;"><button id="btn-start" onclick="toggleTimer()" class="pri" style="flex:1;">Démarrer</button><button onclick="resetTimer()" class="sec">Reset</button></div>
+</div>
+</div>
+
+<div id="screen-smoke" class="scr">
+<div style="padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:500px;">
+<div style="position:relative;width:120px;height:160px;margin-bottom:2rem;">
+<div class="smoke-wrap">
+<div class="smoke s1"></div>
+<div class="smoke s2"></div>
+<div class="smoke s3"></div>
+</div>
+<svg width="120" height="100" viewBox="0 0 120 100" style="position:absolute;bottom:0;left:0;">
+<path d="M15 10 Q15 0 25 0 L95 0 Q105 0 105 10 L105 65 Q105 75 95 75 L85 75 L80 90 L75 75 L25 75 Q15 75 15 65 Z" fill="#ae5630" opacity="0.9"/>
+<ellipse cx="60" cy="8" rx="35" ry="6" fill="#8a3a1a" opacity="0.3"/>
+<path d="M108 25 Q120 25 118 35 Q116 45 108 42" fill="none" stroke="#ae5630" stroke-width="3" stroke-linecap="round"/>
+</svg>
+</div>
+<div style="font-size:28px;font-weight:500;color:#3b2e22;letter-spacing:-0.5px;margin-bottom:3rem;">Smoke That Cream</div>
+<button onclick="showTasting()" class="pri" style="max-width:280px;">Continuer vers la dégustation</button>
+<button onclick="skipSmoke()" class="gho" style="max-width:280px;margin-top:10px;">Passer</button>
+</div>
+</div>
+
+<div id="screen-tasting" class="scr">
+<div style="padding:1.25rem 1.5rem;">
+<div class="top-bar"><button onclick="tastBack()" class="bk">&#8249;</button><span class="tbt">Dégustation</span><div style="width:20px"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Titre de ma recette</div><input type="text" id="cust-title" placeholder="Ex: Mon latte du dimanche..." class="ti"></div>
+<div id="qc-section" style="display:none;">
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Méthode</div><select id="qc-method" class="ti" style="cursor:pointer;" onchange="updQC()"></select></div>
+<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="qc-dv" class="sv"></span></div><input type="range" id="qc-dose" class="rng"></div>
+<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="qc-rv" class="sv"></span></div><input type="range" id="qc-ratio" class="rng"></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="qc-liquid-fields"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture</div><div class="sr"><span class="sl">Grind size</span><span id="qc-gs-val" class="sv"></span></div><input type="range" id="qc-gs" class="rng" min="1" max="40" step="1" value="20"><div style="margin-top:10px;"><span class="sl">Temps de grind</span><input type="text" id="qc-gt" placeholder="Ex: 30 sec..." class="ti" style="margin-top:4px;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="qc-cn" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'qcn')"><div id="ac-qcn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="qc-ro" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'qro')"><div id="ac-qro" class="ad"></div></div><input type="text" id="qc-or" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
+</div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Ma cote</div><div id="stars" style="display:flex;gap:6px;justify-content:center;padding:4px 0;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Roue des saveurs</div><div style="text-align:center;padding:6px 0;"><svg id="fw" width="260" height="260" viewBox="0 0 260 260"></svg></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Arômes</div><div id="atags" style="display:flex;flex-wrap:wrap;gap:6px;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Notes</div><textarea id="tnotes" placeholder="Impressions, texture..." class="ta"></textarea></div>
+<button onclick="saveRec()" class="pri" style="margin-bottom:8px;">Sauvegarder</button>
+<button onclick="cancelTast()" class="gho">Annuler</button>
+</div>
+</div>
+
+<div id="screen-detail" class="scr">
+<div style="padding:1.25rem 1.5rem;">
+<div class="top-bar"><button onclick="showScreen('home');switchTab('mesrecettes')" class="bk">&#8249;</button><span class="tbt">Détail</span><div style="width:20px"></div></div>
+<div id="det-content"></div>
+<button onclick="delRec()" class="gho" style="margin-top:12px;color:#993322;border-color:#ddb8a8;">Supprimer</button>
+</div>
+</div>
+
+</div>
+
+<script src="recipes.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
