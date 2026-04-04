@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coffee-cream-v2';
+const CACHE_NAME = 'coffee-cream-v3';
 const ASSETS = [
   '/',
   '/index.html',
@@ -32,6 +32,18 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(e.request));
     return;
   }
+  // Network-first for app files (JS, CSS, HTML) so updates are always picked up
+  if (e.request.url.match(/\.(js|css|html)$/) || e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request).then(resp => {
+        const clone = resp.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        return resp;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // Cache-first for static assets (fonts, icons, CDN libs)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );
