@@ -13,14 +13,21 @@ let curLiquids = {};
 let currentUser = null;
 let currentGrinder = localStorage.getItem('cc_grinder') || 'baratza';
 let grindersData = [];
+var grinderUUIDs = {}; // maps 'baratza' / 'kitchenaid' to Supabase UUIDs
 
 // ── User Selection ──
 const USER_GRINDER_DEFAULTS = { Eric: 'kitchenaid' };
 
 async function initApp() {
-  // Load grinders from Supabase
+  // Load grinders from Supabase and build UUID map
   const { data: gd } = await sb.from('grinders').select('*');
-  if (gd) grindersData = gd;
+  if (gd) {
+    grindersData = gd;
+    gd.forEach(g => {
+      if (g.brand === 'Baratza') grinderUUIDs.baratza = g.id;
+      if (g.brand === 'KitchenAid') grinderUUIDs.kitchenaid = g.id;
+    });
+  }
 
   const savedUser = localStorage.getItem('cc_user_id');
   if (savedUser) {
@@ -76,41 +83,56 @@ async function loadBrews() {
   updCount();
 }
 
+// DB columns: id, user_id, recipe_key, recipe_name, grinder_id, grind_setting,
+// dose_g, yield_ml, water_temp_c, brew_time_s, rating, flavor_profile (jsonb),
+// aromas (text[]), notes, is_favorite, created_at
+// Extra app data stored in flavor_profile JSON
+
 function mapBrewFromDB(row) {
+  const fp = row.flavor_profile || {};
+  const created = row.created_at ? new Date(row.created_at) : new Date();
   return {
     dbId: row.id,
-    cat: row.category, key: row.recipe_key, name: row.recipe_name, catName: row.category_name,
-    ct: row.custom_title || row.recipe_name,
-    dose: row.dose, ratio: row.ratio, yield: row.yield_ml,
-    cn: row.coffee_name, ro: row.roaster, or: row.origin,
-    gs: row.grind_size, gt: row.grind_time, gsLabel: row.grind_label,
-    grinder: row.grinder_id,
-    liqs: row.liquids || {},
-    rat: row.rating, fl: row.flavors || {}, ar: row.aromas || [],
+    cat: fp.cat || '', key: row.recipe_key, name: row.recipe_name, catName: fp.catName || '',
+    ct: fp.ct || row.recipe_name,
+    dose: row.dose_g || 0, ratio: fp.ratio || 0, yield: row.yield_ml || 0,
+    cn: fp.cn || '', ro: fp.ro || '', or: fp.or || '',
+    gs: row.grind_setting, gt: fp.gt || '', gsLabel: fp.gsLabel || '',
+    grinder: row.grinder_id === grinderUUIDs.kitchenaid ? 'kitchenaid' : 'baratza',
+    liqs: fp.liqs || {},
+    rat: row.rating || 0, fl: fp.fl || {}, ar: row.aromas || [],
     notes: row.notes,
-    date: row.brew_date, time: row.brew_time,
+    date: created.toLocaleDateString('fr-CA'),
+    time: created.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
     id: row.id, fav: row.is_favorite || false,
-    user_id: row.user_id, user_name: row.user_name
+    user_id: row.user_id, user_name: fp.user_name || ''
   };
 }
 
 async function saveToDB(rec) {
   const row = {
     user_id: currentUser.id,
-    user_name: currentUser.name,
-    category: rec.cat, recipe_key: rec.key, recipe_name: rec.name, category_name: rec.catName,
-    custom_title: rec.ct,
-    dose: rec.dose, ratio: rec.ratio, yield_ml: rec.yield,
-    coffee_name: rec.cn, roaster: rec.ro, origin: rec.or,
-    grind_size: rec.gs, grind_time: rec.gt, grind_label: rec.gsLabel,
-    grinder_id: rec.grinder,
-    liquids: rec.liqs,
-    rating: rec.rat, flavors: rec.fl, aromas: rec.ar,
-    notes: rec.notes,
-    brew_date: rec.date, brew_time: rec.time,
-    is_favorite: false
+    recipe_key: rec.key,
+    recipe_name: rec.name,
+    grinder_id: grinderUUIDs[rec.grinder] || null,
+    grind_setting: rec.gs || null,
+    dose_g: rec.dose,
+    yield_ml: rec.yield,
+    rating: Math.max(rec.rat || 1, 1),
+    aromas: rec.ar || [],
+    notes: rec.notes || null,
+    is_favorite: false,
+    flavor_profile: {
+      cat: rec.cat, catName: rec.catName, ct: rec.ct,
+      ratio: rec.ratio,
+      cn: rec.cn, ro: rec.ro, or: rec.or,
+      gt: rec.gt, gsLabel: rec.gsLabel,
+      liqs: rec.liqs, fl: rec.fl,
+      user_name: currentUser.name
+    }
   };
-  const { data } = await sb.from('brews').insert(row).select().single();
+  const { data, error } = await sb.from('brews').insert(row).select().single();
+  if (error) console.error('saveToDB error:', JSON.stringify(error));
   return data;
 }
 
