@@ -15,7 +15,7 @@ let currentGrinder = localStorage.getItem('cc_grinder') || 'baratza';
 let grindersData = [];
 
 // ── User Selection ──
-const USER_ICONS = { Christian: '☕', Eric: '🫘', Perron: '🥛' };
+const USER_GRINDER_DEFAULTS = { Eric: 'kitchenaid' };
 
 async function initApp() {
   // Load grinders from Supabase
@@ -43,7 +43,7 @@ async function renderLoginScreen() {
   (users || []).forEach(u => {
     const b = document.createElement('button');
     b.className = 'user-btn';
-    b.innerHTML = `<span style="font-size:24px;">${USER_ICONS[u.name] || '☕'}</span><span style="font-size:16px;font-weight:500;">${u.name}</span>`;
+    b.innerHTML = `<span style="font-size:16px;font-weight:500;">${u.name}</span>`;
     b.onclick = () => selectUser(u);
     container.appendChild(b);
   });
@@ -52,6 +52,11 @@ async function renderLoginScreen() {
 async function selectUser(u) {
   currentUser = u;
   localStorage.setItem('cc_user_id', u.id);
+  // Set default grinder per user if not already saved
+  if (!localStorage.getItem('cc_grinder') && USER_GRINDER_DEFAULTS[u.name]) {
+    currentGrinder = USER_GRINDER_DEFAULTS[u.name];
+    localStorage.setItem('cc_grinder', currentGrinder);
+  }
   await loadBrews();
   showScreen('home');
   renderCats();
@@ -233,7 +238,7 @@ function renderCats() {
   const hdr = document.createElement('div');
   hdr.id = 'user-header';
   hdr.style = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
-  hdr.innerHTML = `<span class="user-badge">${USER_ICONS[currentUser?.name] || '☕'} ${currentUser?.name || ''}</span><button onclick="switchUser()" style="background:none;border:none;font-size:11px;color:#ae5630;cursor:pointer;font-family:inherit;">Changer</button>`;
+  hdr.innerHTML = `<span class="user-badge">${currentUser?.name || ''}</span><button onclick="switchUser()" style="background:none;border:none;font-size:11px;color:#ae5630;cursor:pointer;font-family:inherit;">Changer</button>`;
   e.parentElement.insertBefore(hdr, e);
 
   for (const [k, c] of Object.entries(RR)) {
@@ -597,7 +602,7 @@ function renderMy() {
     for (let j = 0; j < 5; j++) st += `<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;"><circle cx="6" cy="6" r="5" fill="${j < r.rat ? '#ae5630' : '#e8ddd0'}"/></svg> `;
     const grinderName = GRINDERS[r.grinder]?.name || '';
     const gt = r.gs ? `<span style="font-size:11px;padding:2px 7px;background:#fdf3e8;border:.5px solid #e8ddd0;border-radius:6px;color:#ae5630;">G${r.gs}</span>` : '';
-    const userTag = r.user_name && r.user_name !== currentUser?.name ? `<span class="user-badge">${USER_ICONS[r.user_name] || '☕'} ${r.user_name}</span>` : '';
+    const userTag = r.user_name && r.user_name !== currentUser?.name ? `<span class="user-badge">${r.user_name}</span>` : '';
     d.innerHTML = `<button class="fh" onclick="event.stopPropagation();togFav(${i})" style="color:${r.fav ? '#ae5630' : '#ddd2c2'};">${r.fav ? '&#9829;' : '&#9825;'}</button><div style="padding-right:28px;"><div style="font-size:15px;font-weight:500;color:#3b2e22;margin-bottom:3px;">${r.ct}</div><div style="font-size:12px;color:#7a6b5a;line-height:1.5;">${r.name} · ${r.cn || '--'}${r.ro ? ' · ' + r.ro : ''}</div><div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><div>${st}</div>${gt}${userTag}<span style="font-size:11px;color:#9a8876;">${r.date}</span></div>${r.ar && r.ar.length ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' + r.ar.map(a => `<span style="font-size:11px;padding:3px 8px;background:#f0e6d8;border-radius:12px;color:#5a4a3a;">${a}</span>`).join('') + '</div>' : ''}</div>`;
     d.onclick = () => showDet(i);
     e.appendChild(d);
@@ -639,7 +644,7 @@ function showDet(i) {
   const grindPct = grinderInfo.inverted ? ((r.gs || 0) / grindMax * 100) : ((r.gs || 0) / grindMax * 100);
   const grindHTML = r.gs ? `<div class="ds"><div class="cl">Mouture</div><div style="font-size:12px;color:#7a6b5a;margin-bottom:6px;">${grinderInfo.name}</div><div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;height:4px;background:#e8ddd0;border-radius:2px;"><div style="height:100%;width:${grindPct.toFixed(0)}%;background:#ae5630;border-radius:2px;"></div></div><div style="font-size:14px;font-weight:500;color:#ae5630;">${r.gs}</div><div style="font-size:12px;color:#7a6b5a;">${r.gsLabel || gLabel(r.gs, r.grinder)}</div></div>${r.gt ? `<div style="font-size:12px;color:#5a4a3a;margin-top:8px;">Temps : ${r.gt}</div>` : ''}</div>` : '';
   const liqHTML = r.liqs && Object.keys(r.liqs).length ? `<div class="ds"><div class="cl">Liquides</div>${Object.entries(r.liqs).map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:#5a4a3a;">${k}</span><span style="color:#ae5630;font-weight:500;">${v} ml</span></div>`).join('')}</div>` : '';
-  const userTag = r.user_name ? `<span class="user-badge" style="margin-left:8px;">${USER_ICONS[r.user_name] || '☕'} ${r.user_name}</span>` : '';
+  const userTag = r.user_name ? `<span class="user-badge" style="margin-left:8px;">${r.user_name}</span>` : '';
   c.innerHTML = `<div class="ds"><div style="font-size:20px;font-weight:500;color:#3b2e22;margin-bottom:4px;">${r.ct}</div><div style="font-size:13px;color:#7a6b5a;">${r.name} · ${r.catName}${userTag}</div><div style="font-size:12px;color:#9a8876;margin-top:4px;">${r.date} · ${r.time}</div><div style="margin-top:10px;">${st}</div></div><div class="ds"><div class="cl">Café</div><div style="font-size:14px;color:#3b2e22;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:#5a4a3a;margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:#7a6b5a;margin-top:2px;">Origine : ${r.or}</div>` : ''}</div><div class="ds"><div class="cl">Paramètres</div><div class="mg"><div class="mc"><div class="mcv">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="mcl">g</div></div><div class="mc"><div class="mcv">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="mcl">ratio</div></div><div class="mc"><div class="mcv">${r.yield}</div><div class="mcl">ml</div></div></div></div>${liqHTML}${grindHTML}${r.fl ? `<div class="ds"><div class="cl">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}${r.ar && r.ar.length ? `<div class="ds"><div class="cl">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.ar.map(a => `<span style="font-size:12px;padding:5px 12px;background:#f0e6d8;border-radius:14px;color:#ae5630;">${a}</span>`).join('')}</div></div>` : ''}${r.notes ? `<div class="ds"><div class="cl">Notes</div><div style="font-size:13px;color:#5a4a3a;line-height:1.6;">${r.notes}</div></div>` : ''}`;
   if (r.fl) { const w = document.getElementById('det-wh'); if (w) drawDW(w, r.fl); }
   showScreen('detail');
