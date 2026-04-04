@@ -13,12 +13,22 @@
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <div id="app">
 
-<div id="screen-home" class="scr active">
+<div id="screen-login" class="scr active">
+<div style="padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;">
+<div style="font-size:28px;font-weight:500;letter-spacing:-0.5px;color:#3b2e22;margin-bottom:4px;">Coffee &amp; Cream</div>
+<div style="font-size:11px;color:#9a8876;letter-spacing:1.5px;margin-bottom:3rem;">JOURNAL DE BARISTA</div>
+<div style="font-size:14px;color:#7a6b5a;margin-bottom:1.25rem;">Qui es-tu?</div>
+<div id="user-buttons" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;"></div>
+</div>
+</div>
+
+<div id="screen-home" class="scr">
 <div style="padding:1.75rem 1.5rem 1rem;">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;">
 <div><div style="font-size:24px;font-weight:500;letter-spacing:-0.5px;color:#3b2e22;">Coffee &amp; Cream</div><div style="font-size:11px;color:#9a8876;margin-top:3px;letter-spacing:1.5px;">JOURNAL DE BARISTA</div></div>
@@ -50,7 +60,8 @@
 <div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="ratio-label" class="sv"></span></div><input type="range" id="ratio-slider" class="rng"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="ratio-min"></span><span class="sh" id="ratio-max"></span></div></div>
 <div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="dose-slider-val" class="sv"></span></div><input type="range" id="dose-slider" class="rng"></div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="liquid-fields"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture (grind)</div><div class="sr"><span class="sl">Grind size</span><span id="grind-size-val" class="sv"></span></div><input type="range" id="grind-size" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh">1 extra fin</span><span class="sh">40 très grossier</span></div><div style="margin-top:10px;"><div class="sr"><span class="sl">Temps de grind</span></div><input type="text" id="grind-time" placeholder="Ex: 30 sec, 1 min..." class="ti" style="margin-top:4px;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Grinder</div><div id="grinder-sel" class="grinder-toggle"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture (grind)</div><div class="sr"><span class="sl">Grind size</span><span id="grind-size-val" class="sv"></span></div><input type="range" id="grind-size" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="grind-min-label">1 extra fin</span><span class="sh" id="grind-max-label">40 très grossier</span></div><div style="margin-top:10px;"><div class="sr"><span class="sl">Temps de grind</span></div><input type="text" id="grind-time" placeholder="Ex: 30 sec, 1 min..." class="ti" style="margin-top:4px;"></div></div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Paramètres</div><div id="params-info" style="font-size:12px;color:#5a4a3a;line-height:1.7;"></div></div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="coffee-name" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'cn')"><div id="ac-cn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="coffee-roaster" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'ro')"><div id="ac-ro" class="ad"></div></div><input type="text" id="coffee-origin" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
 <div class="cd" style="margin-bottom:14px;"><div class="cl">Étapes</div><div id="steps-preview"></div></div>
@@ -102,7 +113,8 @@
 <div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="qc-dv" class="sv"></span></div><input type="range" id="qc-dose" class="rng"></div>
 <div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="qc-rv" class="sv"></span></div><input type="range" id="qc-ratio" class="rng"></div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="qc-liquid-fields"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture</div><div class="sr"><span class="sl">Grind size</span><span id="qc-gs-val" class="sv"></span></div><input type="range" id="qc-gs" class="rng" min="1" max="40" step="1" value="20"><div style="margin-top:10px;"><span class="sl">Temps de grind</span><input type="text" id="qc-gt" placeholder="Ex: 30 sec..." class="ti" style="margin-top:4px;"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Grinder</div><div id="qc-grinder-sel" class="grinder-toggle"></div></div>
+<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture</div><div class="sr"><span class="sl">Grind size</span><span id="qc-gs-val" class="sv"></span></div><input type="range" id="qc-gs" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="qc-grind-min-label">1 extra fin</span><span class="sh" id="qc-grind-max-label">40 très grossier</span></div><div style="margin-top:10px;"><span class="sl">Temps de grind</span><input type="text" id="qc-gt" placeholder="Ex: 30 sec..." class="ti" style="margin-top:4px;"></div></div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="qc-cn" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'qcn')"><div id="ac-qcn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="qc-ro" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'qro')"><div id="ac-qro" class="ad"></div></div><input type="text" id="qc-or" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
 </div>
 <div class="cd" style="margin-bottom:10px;"><div class="cl">Ma cote</div><div id="stars" style="display:flex;gap:6px;justify-content:center;padding:4px 0;"></div></div>

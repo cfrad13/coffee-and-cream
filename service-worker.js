@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coffee-cream-v1';
+const CACHE_NAME = 'coffee-cream-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -6,7 +6,8 @@ const ASSETS = [
   '/recipes.js',
   '/app.js',
   '/manifest.json',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
 self.addEventListener('install', e => {
@@ -26,6 +27,11 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Never cache Supabase API calls
+  if (e.request.url.includes('supabase.co')) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request))
   );

@@ -5,27 +5,70 @@ const IC = {
   french: '<svg width="20" height="20" viewBox="0 0 20 20"><rect x="5" y="4" width="10" height="13" rx="1" fill="none" stroke="#ae5630" stroke-width="1.2"/><line x1="10" y1="2" x2="10" y2="4" stroke="#ae5630" stroke-width="1.5" stroke-linecap="round"/><line x1="7" y1="8" x2="13" y2="8" stroke="#ae5630" stroke-width="1.2"/></svg>'
 };
 
-const gLabel = v => {
-  if (v <= 5) return 'extra fin';
-  if (v <= 10) return 'très fin';
-  if (v <= 16) return 'fin';
-  if (v <= 22) return 'moyen';
-  if (v <= 28) return 'moyen-grossier';
-  if (v <= 34) return 'grossier';
-  return 'très grossier';
+// Grinder definitions
+const GRINDERS = {
+  baratza: {
+    name: 'Baratza Encore',
+    steps: 40,
+    min: 1, max: 40,
+    // 1=finest, 40=coarsest (normal direction)
+    inverted: false,
+    label: v => {
+      if (v <= 5) return 'extra fin';
+      if (v <= 10) return 'très fin';
+      if (v <= 16) return 'fin';
+      if (v <= 22) return 'moyen';
+      if (v <= 28) return 'moyen-grossier';
+      if (v <= 34) return 'grossier';
+      return 'très grossier';
+    },
+    minLabel: '1 extra fin',
+    maxLabel: '40 très grossier',
+    defaults: {
+      'Extra fin': 3, 'Très fin': 8, 'Moyen-fin': 14, 'Moyen': 20,
+      'Moyen-grossier': 26, 'Grossier': 32, 'Très grossier': 36
+    }
+  },
+  kitchenaid: {
+    name: 'KitchenAid KCG8433BM',
+    steps: 70,
+    min: 1, max: 70,
+    // 1=coarsest, 70=finest (inverted!)
+    inverted: true,
+    label: v => {
+      if (v >= 65) return 'extra fin';
+      if (v >= 55) return 'très fin (espresso)';
+      if (v >= 41) return 'fin (drip)';
+      if (v >= 30) return 'moyen (pour-over)';
+      if (v >= 25) return 'moyen-grossier';
+      if (v >= 16) return 'grossier (french press)';
+      return 'très grossier (cold brew)';
+    },
+    minLabel: '1 très grossier',
+    maxLabel: '70 extra fin',
+    defaults: {
+      'Extra fin': 68, 'Très fin': 62, 'Moyen-fin': 38, 'Moyen': 35,
+      'Moyen-grossier': 28, 'Grossier': 18, 'Très grossier': 8
+    }
+  }
 };
 
-const gDefault = r => {
+const gLabel = (v, grinderId) => {
+  const g = GRINDERS[grinderId || currentGrinder] || GRINDERS.baratza;
+  return g.label(v);
+};
+
+const gDefault = (r, grinderId) => {
   if (!r) return 20;
-  const g = r.grind || '';
-  if (g.includes('Extra')) return 3;
-  if (g.includes('s fin')) return 8;
-  if (g.includes('oyen-fin')) return 14;
-  if (g.includes('oyen-grossier')) return 26;
-  if (g.includes('s grossier')) return 36;
-  if (g.includes('rossier')) return 32;
-  if (g.includes('oyen')) return 20;
-  return 20;
+  const g = GRINDERS[grinderId || currentGrinder] || GRINDERS.baratza;
+  const grind = r.grind || '';
+  // Try exact match first
+  if (g.defaults[grind]) return g.defaults[grind];
+  // Fuzzy match
+  for (const [key, val] of Object.entries(g.defaults)) {
+    if (grind.toLowerCase().includes(key.toLowerCase().slice(0, 5))) return val;
+  }
+  return g.inverted ? 35 : 20;
 };
 
 const RR = {
