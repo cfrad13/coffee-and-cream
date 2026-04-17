@@ -82,6 +82,25 @@ body {
 .grinder-btn.active { background: #faf5ee; color: #ae5630; font-weight: 500; }
 .user-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; background: #f0e6d8; border-radius: 8px; color: #7a6b5a; }
 
+/* Rond coloré avec initiales, sur cartes et détail */
+.ubadge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; font-size: 10px; font-weight: 600; color: #faf5ee; letter-spacing: .3px; flex-shrink: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+.ubadge-lg { width: 32px; height: 32px; font-size: 11px; }
+
+/* Bouton cloner sur les cartes d'autres users */
+.clone-btn { background: transparent; border: 1px solid #ddd2c2; border-radius: 8px; padding: 6px 10px; font-size: 11px; color: #7a6b5a; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 4px; }
+.clone-btn:active { background: #f0e6d8; }
+
+/* Filtre segmenté Journal */
+.seg-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.seg-pill { padding: 6px 12px; background: #faf5ee; border: .5px solid #e8ddd0; border-radius: 16px; font-size: 12px; color: #7a6b5a; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; }
+.seg-pill.active { background: #ae5630; border-color: #ae5630; color: #faf5ee; }
+.seg-pill .ubadge { width: 16px; height: 16px; font-size: 8px; box-shadow: none; }
+
+/* Panneau de sélection user pour "Par user" */
+.user-pick { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; padding: 10px; background: #f0e6d8; border-radius: 10px; }
+.user-pick-btn { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; background: #faf5ee; border: .5px solid #e8ddd0; border-radius: 20px; cursor: pointer; font-family: inherit; font-size: 12px; color: #3b2e22; }
+.user-pick-btn.active { background: #fdf3e8; border-color: #ae5630; }
+
 .smoke-wrap { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; }
 .smoke { position: absolute; bottom: 0; width: 8px; height: 8px; background: #c4b6a4; border-radius: 50%; opacity: 0; animation: rise 2.5s ease-out infinite; }
 .s1 { left: 12px; animation-delay: 0s; }

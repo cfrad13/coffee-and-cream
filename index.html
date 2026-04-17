@@ -36,12 +36,16 @@
 </div>
 <div style="display:flex;gap:0;margin-bottom:20px;background:#ebe0d0;border-radius:10px;padding:3px;">
 <button class="tab active" data-tab="recettes" onclick="switchTab('recettes')">Recettes</button>
-<button class="tab" data-tab="mesrecettes" onclick="switchTab('mesrecettes')">Mes recettes</button>
-<button class="tab" data-tab="favoris" onclick="switchTab('favoris')">Favoris</button>
+<button class="tab" data-tab="journal" onclick="switchTab('journal')">Journal</button>
 </div>
 <div id="tab-recettes"><div id="category-list"></div></div>
-<div id="tab-mesrecettes" style="display:none;"><button onclick="openQC()" class="create-btn">+ Créer une recette</button><div id="my-list"></div><div id="my-empty" class="empty-state">Aucune recette sauvegardée</div></div>
-<div id="tab-favoris" style="display:none;"><div id="fav-list"></div><div id="fav-empty" class="empty-state">Aucun favori</div></div>
+<div id="tab-journal" style="display:none;">
+<button onclick="openQC()" class="create-btn">+ Créer une recette</button>
+<div id="journal-filter" class="seg-filter"></div>
+<div id="journal-userpick" class="user-pick" style="display:none;"></div>
+<div id="journal-list"></div>
+<div id="journal-empty" class="empty-state">Aucune recette</div>
+</div>
 </div>
 </div>
 

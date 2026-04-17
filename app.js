@@ -14,40 +14,79 @@ let currentUser = null;
 let currentGrinder = localStorage.getItem('cc_grinder') || 'baratza';
 let grindersData = [];
 var grinderUUIDs = {}; // maps 'baratza' / 'kitchenaid' to Supabase UUIDs
+var allUsers = [];    // cache de la liste users (id, name, color, initials)
+var usersById = {};   // lookup rapide id -> user
+var journalFilter = { type: 'all', userId: null }; // all | mine | user | favs
 
 // ── User Selection ──
 const USER_GRINDER_DEFAULTS = { Eric: 'kitchenaid' };
 
+// Retourne la couleur (fallback si le user n'a pas encore color en DB)
+function userColorFor(u) {
+  if (u && u.color) return u.color;
+  // fallbacks par nom si jamais
+  if (u && u.name === 'Christian') return '#ae5630';
+  if (u && u.name === 'Eric')      return '#3b6b4d';
+  if (u && u.name === 'Perron')    return '#8b5a3c';
+  return '#7a6b5a';
+}
+
+function userInitialsFor(u) {
+  if (u && u.initials) return u.initials;
+  if (u && u.name) return u.name.slice(0, 2).toUpperCase();
+  return '??';
+}
+
+// Rend le badge rond pour un user (par user_id)
+function ubadgeHTML(userId, size) {
+  const u = usersById[userId] || null;
+  const col = userColorFor(u);
+  const ini = userInitialsFor(u);
+  const cls = 'ubadge' + (size === 'lg' ? ' ubadge-lg' : '');
+  return `<span class="${cls}" style="background:${col};" title="${u ? u.name : 'inconnu'}">${ini}</span>`;
+}
+
 async function initApp() {
-  // Load grinders from Supabase and build UUID map
-  const { data: gd } = await sb.from('grinders').select('*');
-  if (gd) {
-    grindersData = gd;
-    gd.forEach(g => {
+  // Charger grinders + users en parallèle
+  const [grindersRes, usersRes] = await Promise.all([
+    sb.from('grinders').select('*'),
+    sb.from('users').select('*').order('name')
+  ]);
+  if (grindersRes.data) {
+    grindersData = grindersRes.data;
+    grindersRes.data.forEach(g => {
       if (g.brand === 'Baratza') grinderUUIDs.baratza = g.id;
       if (g.brand === 'KitchenAid') grinderUUIDs.kitchenaid = g.id;
     });
   }
+  if (usersRes.data) {
+    allUsers = usersRes.data;
+    usersById = Object.fromEntries(allUsers.map(u => [u.id, u]));
+  }
 
   const savedUser = localStorage.getItem('cc_user_id');
-  if (savedUser) {
-    const { data } = await sb.from('users').select('*').eq('id', savedUser).single();
-    if (data) {
-      currentUser = data;
-      await loadBrews();
-      showScreen('home');
-      renderCats();
-      return;
-    }
+  if (savedUser && usersById[savedUser]) {
+    currentUser = usersById[savedUser];
+    await loadBrews();
+    showScreen('home');
+    renderCats();
+    return;
   }
   await renderLoginScreen();
 }
 
 async function renderLoginScreen() {
-  const { data: users } = await sb.from('users').select('*').order('name');
+  // Si cache vide (ex: logout puis relogin), recharger
+  if (!allUsers.length) {
+    const { data } = await sb.from('users').select('*').order('name');
+    if (data) {
+      allUsers = data;
+      usersById = Object.fromEntries(allUsers.map(u => [u.id, u]));
+    }
+  }
   const container = document.getElementById('user-buttons');
   container.innerHTML = '';
-  (users || []).forEach(u => {
+  allUsers.forEach(u => {
     const b = document.createElement('button');
     b.className = 'user-btn';
     b.innerHTML = `<span style="font-size:16px;font-weight:500;">${u.name}</span>`;
@@ -109,7 +148,17 @@ function mapBrewFromDB(row) {
   };
 }
 
-async function saveToDB(rec) {
+async function saveToDB(rec, opts) {
+  const fp = {
+    cat: rec.cat, catName: rec.catName, ct: rec.ct,
+    ratio: rec.ratio,
+    cn: rec.cn, ro: rec.ro, or: rec.or,
+    gt: rec.gt, gsLabel: rec.gsLabel,
+    liqs: rec.liqs, fl: rec.fl,
+    user_name: currentUser.name
+  };
+  // Trace du clone (la colonne `brews` n'a pas cloned_from, on le range dans le JSON)
+  if (opts && opts.cloned_from_dbid) fp.cloned_from_dbid = opts.cloned_from_dbid;
   const row = {
     user_id: currentUser.id,
     recipe_key: rec.key,
@@ -122,14 +171,7 @@ async function saveToDB(rec) {
     aromas: rec.ar || [],
     notes: rec.notes || null,
     is_favorite: false,
-    flavor_profile: {
-      cat: rec.cat, catName: rec.catName, ct: rec.ct,
-      ratio: rec.ratio,
-      cn: rec.cn, ro: rec.ro, or: rec.or,
-      gt: rec.gt, gsLabel: rec.gsLabel,
-      liqs: rec.liqs, fl: rec.fl,
-      user_name: currentUser.name
-    }
+    flavor_profile: fp
   };
   const { data, error } = await sb.from('brews').insert(row).select().single();
   if (error) console.error('saveToDB error:', JSON.stringify(error));
@@ -260,7 +302,8 @@ function renderCats() {
   const hdr = document.createElement('div');
   hdr.id = 'user-header';
   hdr.style = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
-  hdr.innerHTML = `<span class="user-badge">${currentUser?.name || ''}</span><button onclick="switchUser()" style="background:none;border:none;font-size:11px;color:#ae5630;cursor:pointer;font-family:inherit;">Changer</button>`;
+  const badge = currentUser ? ubadgeHTML(currentUser.id) : '';
+  hdr.innerHTML = `<span style="display:inline-flex;align-items:center;gap:8px;">${badge}<span style="font-size:13px;color:#3b2e22;">${currentUser?.name || ''}</span></span><button onclick="switchUser()" style="background:none;border:none;font-size:11px;color:#ae5630;cursor:pointer;font-family:inherit;">Changer</button>`;
   e.parentElement.insertBefore(hdr, e);
 
   for (const [k, c] of Object.entries(RR)) {
@@ -611,48 +654,142 @@ async function saveRec() {
   switchTab('mesrecettes');
 }
 
-// ── My recipes list ──
-function renderMy() {
-  const e = document.getElementById('my-list'), em = document.getElementById('my-empty');
-  e.innerHTML = '';
-  if (!my.length) { em.style.display = 'block'; updCount(); return; }
-  em.style.display = 'none';
-  my.forEach((r, i) => {
+// ── Journal : filtre segmenté + liste unifiée ──
+
+// Retourne les brews filtrés selon journalFilter
+function filteredBrews() {
+  if (journalFilter.type === 'mine' && currentUser) return my.filter(r => r.user_id === currentUser.id);
+  if (journalFilter.type === 'user' && journalFilter.userId) return my.filter(r => r.user_id === journalFilter.userId);
+  if (journalFilter.type === 'favs') return my.filter(r => r.fav);
+  return my; // 'all'
+}
+
+// Dessine la barre de filtre segmenté
+function renderJournalFilter() {
+  const c = document.getElementById('journal-filter');
+  const active = (t) => journalFilter.type === t ? ' active' : '';
+  let userPillLabel = 'Par user';
+  if (journalFilter.type === 'user' && journalFilter.userId) {
+    const u = usersById[journalFilter.userId];
+    if (u) userPillLabel = `${ubadgeHTML(u.id)} ${u.name}`;
+  }
+  c.innerHTML = `
+    <button class="seg-pill${active('all')}"  onclick="setJournalFilter('all')">Toutes</button>
+    <button class="seg-pill${active('mine')}" onclick="setJournalFilter('mine')">Miennes</button>
+    <button class="seg-pill${active('user')}" onclick="toggleUserPicker()">${userPillLabel}</button>
+    <button class="seg-pill${active('favs')}" onclick="setJournalFilter('favs')">Favoris</button>`;
+
+  // Panneau de sélection user si "Par user" actif OU si l'utilisateur vient de cliquer pour ouvrir
+  const picker = document.getElementById('journal-userpick');
+  if (journalFilter.type === 'user' || journalFilter._pickerOpen) {
+    picker.style.display = 'flex';
+    picker.innerHTML = allUsers.map(u => {
+      const isActive = journalFilter.userId === u.id ? ' active' : '';
+      return `<button class="user-pick-btn${isActive}" onclick="setUserFilter('${u.id}')">${ubadgeHTML(u.id)}${u.name}</button>`;
+    }).join('');
+  } else {
+    picker.style.display = 'none';
+  }
+}
+
+function setJournalFilter(type) {
+  journalFilter = { type, userId: null };
+  renderJournalFilter();
+  renderJournal();
+}
+
+function toggleUserPicker() {
+  if (journalFilter.type === 'user') {
+    // Toggle off
+    journalFilter = { type: 'all', userId: null };
+  } else {
+    journalFilter = { type: 'user', userId: null, _pickerOpen: true };
+  }
+  renderJournalFilter();
+  renderJournal();
+}
+
+function setUserFilter(userId) {
+  journalFilter = { type: 'user', userId };
+  renderJournalFilter();
+  renderJournal();
+}
+
+// Liste principale (filtrée)
+function renderJournal() {
+  const list = document.getElementById('journal-list');
+  const empty = document.getElementById('journal-empty');
+  list.innerHTML = '';
+  const items = filteredBrews();
+  if (!items.length) {
+    empty.style.display = 'block';
+    empty.textContent = journalFilter.type === 'favs' ? 'Aucun favori' : 'Aucune recette';
+    updCount();
+    return;
+  }
+  empty.style.display = 'none';
+
+  items.forEach((r) => {
+    const myIdx = my.indexOf(r); // index original dans `my` pour togFav/showDet
     const d = document.createElement('div');
     d.className = 'myc';
-    let st = '';
-    for (let j = 0; j < 5; j++) st += `<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;"><circle cx="6" cy="6" r="5" fill="${j < r.rat ? '#ae5630' : '#e8ddd0'}"/></svg> `;
-    const grinderName = GRINDERS[r.grinder]?.name || '';
+    let stars = '';
+    for (let j = 0; j < 5; j++) stars += `<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;"><circle cx="6" cy="6" r="5" fill="${j < r.rat ? '#ae5630' : '#e8ddd0'}"/></svg> `;
     const gt = r.gs ? `<span style="font-size:11px;padding:2px 7px;background:#fdf3e8;border:.5px solid #e8ddd0;border-radius:6px;color:#ae5630;">G${r.gs}</span>` : '';
-    const userTag = r.user_name && r.user_name !== currentUser?.name ? `<span class="user-badge">${r.user_name}</span>` : '';
-    d.innerHTML = `<button class="fh" onclick="event.stopPropagation();togFav(${i})" style="color:${r.fav ? '#ae5630' : '#ddd2c2'};">${r.fav ? '&#9829;' : '&#9825;'}</button><div style="padding-right:28px;"><div style="font-size:15px;font-weight:500;color:#3b2e22;margin-bottom:3px;">${r.ct}</div><div style="font-size:12px;color:#7a6b5a;line-height:1.5;">${r.name} · ${r.cn || '--'}${r.ro ? ' · ' + r.ro : ''}</div><div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;"><div>${st}</div>${gt}${userTag}<span style="font-size:11px;color:#9a8876;">${r.date}</span></div>${r.ar && r.ar.length ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' + r.ar.map(a => `<span style="font-size:11px;padding:3px 8px;background:#f0e6d8;border-radius:12px;color:#5a4a3a;">${a}</span>`).join('') + '</div>' : ''}</div>`;
-    d.onclick = () => showDet(i);
-    e.appendChild(d);
+    const isOther = r.user_id && currentUser && r.user_id !== currentUser.id;
+    const cloneBtn = isOther ? `<button class="clone-btn" onclick="event.stopPropagation();cloneBrew('${r.dbId}')">Cloner</button>` : '';
+    const badge = r.user_id ? ubadgeHTML(r.user_id) : '';
+    d.innerHTML = `
+      <button class="fh" onclick="event.stopPropagation();togFav(${myIdx})" style="color:${r.fav ? '#ae5630' : '#ddd2c2'};">${r.fav ? '&#9829;' : '&#9825;'}</button>
+      <div style="display:flex;align-items:flex-start;gap:10px;padding-right:28px;">
+        ${badge}
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:15px;font-weight:500;color:#3b2e22;margin-bottom:3px;">${r.ct}</div>
+          <div style="font-size:12px;color:#7a6b5a;line-height:1.5;">${r.name} · ${r.cn || '--'}${r.ro ? ' · ' + r.ro : ''}</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;flex-wrap:wrap;">
+            <div>${stars}</div>
+            ${gt}
+            <span style="font-size:11px;color:#9a8876;">${r.date}</span>
+            ${cloneBtn}
+          </div>
+          ${r.ar && r.ar.length ? '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' + r.ar.map(a => `<span style="font-size:11px;padding:3px 8px;background:#f0e6d8;border-radius:12px;color:#5a4a3a;">${a}</span>`).join('') + '</div>' : ''}
+        </div>
+      </div>`;
+    d.onclick = () => showDet(myIdx);
+    list.appendChild(d);
   });
   updCount();
 }
 
+// Alias rétrocompat (appelés depuis saveRec/delRec/switchTab)
+function renderMy() { renderJournal(); }
+
 async function togFav(i) {
   my[i].fav = !my[i].fav;
   await toggleFavDB(my[i].dbId, my[i].fav);
-  renderMy();
+  renderJournal();
 }
 
-function renderFavs() {
-  const e = document.getElementById('fav-list'), em = document.getElementById('fav-empty');
-  e.innerHTML = '';
-  const f = my.filter(r => r.fav);
-  if (!f.length) { em.style.display = 'block'; return; }
-  em.style.display = 'none';
-  f.forEach(r => {
-    const ri = my.indexOf(r), d = document.createElement('div');
-    d.className = 'myc';
-    let st = '';
-    for (let j = 0; j < 5; j++) st += `<svg width="12" height="12" viewBox="0 0 12 12" style="vertical-align:middle;"><circle cx="6" cy="6" r="5" fill="${j < r.rat ? '#ae5630' : '#e8ddd0'}"/></svg> `;
-    d.innerHTML = `<div><div style="font-size:15px;font-weight:500;color:#3b2e22;margin-bottom:3px;">${r.ct}</div><div style="font-size:12px;color:#7a6b5a;">${r.cn || ''} ${r.ro ? '· ' + r.ro : ''}</div><div style="margin-top:6px;">${st}</div></div>`;
-    d.onclick = () => showDet(ri);
-    e.appendChild(d);
-  });
+// Clone une recette d'un autre user avec suffixe "(copie)"
+async function cloneBrew(dbId) {
+  const src = my.find(r => r.dbId === dbId);
+  if (!src || !currentUser) return;
+  const rec = {
+    cat: src.cat, key: src.key, name: src.name, catName: src.catName,
+    ct: src.ct + ' (copie)',
+    dose: src.dose, ratio: src.ratio, yield: src.yield,
+    cn: src.cn, ro: src.ro, or: src.or,
+    gs: src.gs, gt: src.gt, gsLabel: src.gsLabel, grinder: src.grinder,
+    liqs: { ...(src.liqs || {}) },
+    rat: src.rat, fl: { ...(src.fl || {}) }, ar: [...(src.ar || [])],
+    notes: src.notes || ''
+  };
+  // Injecter cloned_from dans le flavor_profile via saveToDB (on étend temporairement)
+  const saved = await saveToDB(rec, { cloned_from_dbid: dbId });
+  if (saved) {
+    my.unshift(mapBrewFromDB(saved));
+    renderJournal();
+  }
 }
 
 // ── Detail view ──
@@ -666,8 +803,11 @@ function showDet(i) {
   const grindPct = grinderInfo.inverted ? ((r.gs || 0) / grindMax * 100) : ((r.gs || 0) / grindMax * 100);
   const grindHTML = r.gs ? `<div class="ds"><div class="cl">Mouture</div><div style="font-size:12px;color:#7a6b5a;margin-bottom:6px;">${grinderInfo.name}</div><div style="display:flex;align-items:center;gap:10px;"><div style="flex:1;height:4px;background:#e8ddd0;border-radius:2px;"><div style="height:100%;width:${grindPct.toFixed(0)}%;background:#ae5630;border-radius:2px;"></div></div><div style="font-size:14px;font-weight:500;color:#ae5630;">${r.gs}</div><div style="font-size:12px;color:#7a6b5a;">${r.gsLabel || gLabel(r.gs, r.grinder)}</div></div>${r.gt ? `<div style="font-size:12px;color:#5a4a3a;margin-top:8px;">Temps : ${r.gt}</div>` : ''}</div>` : '';
   const liqHTML = r.liqs && Object.keys(r.liqs).length ? `<div class="ds"><div class="cl">Liquides</div>${Object.entries(r.liqs).map(([k, v]) => `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:#5a4a3a;">${k}</span><span style="color:#ae5630;font-weight:500;">${v} ml</span></div>`).join('')}</div>` : '';
-  const userTag = r.user_name ? `<span class="user-badge" style="margin-left:8px;">${r.user_name}</span>` : '';
-  c.innerHTML = `<div class="ds"><div style="font-size:20px;font-weight:500;color:#3b2e22;margin-bottom:4px;">${r.ct}</div><div style="font-size:13px;color:#7a6b5a;">${r.name} · ${r.catName}${userTag}</div><div style="font-size:12px;color:#9a8876;margin-top:4px;">${r.date} · ${r.time}</div><div style="margin-top:10px;">${st}</div></div><div class="ds"><div class="cl">Café</div><div style="font-size:14px;color:#3b2e22;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:#5a4a3a;margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:#7a6b5a;margin-top:2px;">Origine : ${r.or}</div>` : ''}</div><div class="ds"><div class="cl">Paramètres</div><div class="mg"><div class="mc"><div class="mcv">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="mcl">g</div></div><div class="mc"><div class="mcv">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="mcl">ratio</div></div><div class="mc"><div class="mcv">${r.yield}</div><div class="mcl">ml</div></div></div></div>${liqHTML}${grindHTML}${r.fl ? `<div class="ds"><div class="cl">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}${r.ar && r.ar.length ? `<div class="ds"><div class="cl">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.ar.map(a => `<span style="font-size:12px;padding:5px 12px;background:#f0e6d8;border-radius:14px;color:#ae5630;">${a}</span>`).join('')}</div></div>` : ''}${r.notes ? `<div class="ds"><div class="cl">Notes</div><div style="font-size:13px;color:#5a4a3a;line-height:1.6;">${r.notes}</div></div>` : ''}`;
+  const u = r.user_id ? usersById[r.user_id] : null;
+  const userTag = u ? `<span style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;">${ubadgeHTML(u.id)}<span style="font-size:12px;color:#5a4a3a;">${u.name}</span></span>` : '';
+  const isOther = r.user_id && currentUser && r.user_id !== currentUser.id;
+  const cloneBtnDet = isOther ? `<button class="clone-btn" style="margin-top:12px;width:100%;" onclick="cloneBrew('${r.dbId}')">Cloner cette recette</button>` : '';
+  c.innerHTML = `<div class="ds"><div style="font-size:20px;font-weight:500;color:#3b2e22;margin-bottom:4px;">${r.ct}</div><div style="font-size:13px;color:#7a6b5a;display:flex;align-items:center;">${r.name} · ${r.catName}${userTag}</div><div style="font-size:12px;color:#9a8876;margin-top:4px;">${r.date} · ${r.time}</div><div style="margin-top:10px;">${st}</div>${cloneBtnDet}</div><div class="ds"><div class="cl">Café</div><div style="font-size:14px;color:#3b2e22;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:#5a4a3a;margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:#7a6b5a;margin-top:2px;">Origine : ${r.or}</div>` : ''}</div><div class="ds"><div class="cl">Paramètres</div><div class="mg"><div class="mc"><div class="mcv">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="mcl">g</div></div><div class="mc"><div class="mcv">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="mcl">ratio</div></div><div class="mc"><div class="mcv">${r.yield}</div><div class="mcl">ml</div></div></div></div>${liqHTML}${grindHTML}${r.fl ? `<div class="ds"><div class="cl">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}${r.ar && r.ar.length ? `<div class="ds"><div class="cl">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.ar.map(a => `<span style="font-size:12px;padding:5px 12px;background:#f0e6d8;border-radius:14px;color:#ae5630;">${a}</span>`).join('')}</div></div>` : ''}${r.notes ? `<div class="ds"><div class="cl">Notes</div><div style="font-size:13px;color:#5a4a3a;line-height:1.6;">${r.notes}</div></div>` : ''}`;
   if (r.fl) { const w = document.getElementById('det-wh'); if (w) drawDW(w, r.fl); }
   showScreen('detail');
 }
@@ -683,14 +823,19 @@ async function delRec() {
 }
 
 // ── Navigation ──
+// Rétrocompat : les anciens noms 'mesrecettes' et 'favoris' redirigent vers 'journal'
 function switchTab(t) {
+  if (t === 'mesrecettes') { t = 'journal'; journalFilter = { type: 'mine', userId: null }; }
+  else if (t === 'favoris') { t = 'journal'; journalFilter = { type: 'favs', userId: null }; }
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  document.querySelector(`.tab[data-tab="${t}"]`).classList.add('active');
+  const btn = document.querySelector(`.tab[data-tab="${t}"]`);
+  if (btn) btn.classList.add('active');
   document.getElementById('tab-recettes').style.display = t === 'recettes' ? 'block' : 'none';
-  document.getElementById('tab-mesrecettes').style.display = t === 'mesrecettes' ? 'block' : 'none';
-  document.getElementById('tab-favoris').style.display = t === 'favoris' ? 'block' : 'none';
-  if (t === 'mesrecettes') renderMy();
-  if (t === 'favoris') renderFavs();
+  document.getElementById('tab-journal').style.display  = t === 'journal'  ? 'block' : 'none';
+  if (t === 'journal') {
+    renderJournalFilter();
+    renderJournal();
+  }
 }
 
 function goBack() { showScreen('sub'); }
