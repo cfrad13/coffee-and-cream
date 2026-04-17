@@ -1,9 +1,10 @@
-const CACHE_NAME = 'coffee-cream-v3';
+const CACHE_NAME = 'coffee-cream-v10';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/recipes.js',
+  '/extraction.js',
   '/app.js',
   '/manifest.json',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap',

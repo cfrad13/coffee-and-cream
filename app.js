@@ -144,7 +144,9 @@ function mapBrewFromDB(row) {
     date: created.toLocaleDateString('fr-CA'),
     time: created.toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
     id: row.id, fav: row.is_favorite || false,
-    user_id: row.user_id, user_name: fp.user_name || ''
+    user_id: row.user_id, user_name: fp.user_name || '',
+    brew_time_s: row.brew_time_s || null,
+    extraction_verdict: row.extraction_verdict || null
   };
 }
 
@@ -167,6 +169,8 @@ async function saveToDB(rec, opts) {
     grind_setting: rec.gs || null,
     dose_g: rec.dose,
     yield_ml: rec.yield,
+    brew_time_s: rec.brew_time_s || null,
+    extraction_verdict: rec.extraction_verdict || null,
     rating: Math.max(rec.rat || 1, 1),
     aromas: rec.ar || [],
     notes: rec.notes || null,
@@ -390,6 +394,9 @@ function updRec() {
 }
 
 // ── Timer ──
+// État de la cible d'extraction (min/ideal/max/label) pour la session courante
+var currentTarget = null;
+
 function startTimer() {
   el = 0; run = false;
   document.getElementById('timer-title').textContent = cR.name;
@@ -399,9 +406,49 @@ function startTimer() {
   document.getElementById('timer-step-name').textContent = as[0] ? as[0].n : '';
   document.getElementById('prog').style.strokeDashoffset = '553';
   renderTS();
+
+  // Calcule la zone cible selon la catégorie, la dose et le ratio
+  const dose  = parseFloat(document.getElementById(isQC ? 'qc-dose'  : 'dose-slider' ).value);
+  const ratio = parseFloat(document.getElementById(isQC ? 'qc-ratio' : 'ratio-slider').value);
+  currentTarget = calculerTempsCible(cCat, dose, ratio);
+  setupTargetUI();
   updTD();
   document.getElementById('btn-start').textContent = 'Démarrer';
   showScreen('timer');
+}
+
+// Dessine la zone cible sous le timer (ou masque si méthode non supportée)
+function setupTargetUI() {
+  const zone = document.getElementById('target-zone');
+  if (!currentTarget) { zone.style.display = 'none'; return; }
+  zone.style.display = 'block';
+  document.getElementById('target-label').innerHTML =
+    `Cible : <strong>${fmtSec(currentTarget.min)}–${fmtSec(currentTarget.max)}</strong> (idéal ${fmtSec(currentTarget.ideal)})`;
+  updTargetProgress();
+}
+
+// Met à jour la barre de progression + couleur selon el (temps écoulé)
+function updTargetProgress() {
+  if (!currentTarget) return;
+  const pct = Math.min((el / currentTarget.max) * 100, 100);
+  const bar = document.getElementById('target-progress');
+  const zone = document.getElementById('target-zone-bar');
+  const verdictEl = document.getElementById('target-verdict');
+  // Zone verte (min→max) positionnée en pourcentage de max
+  const minPct = (currentTarget.min / currentTarget.max) * 100;
+  zone.style.left  = minPct + '%';
+  zone.style.width = (100 - minPct) + '%';
+  const v = verdictLive(el, currentTarget);
+  const col = couleurLive(v);
+  bar.style.width = pct + '%';
+  bar.style.background = col;
+  document.getElementById('timer-display').style.color = col;
+  verdictEl.style.color = col;
+  if (v === 'under')       verdictEl.textContent = `Dans ${fmtSec(currentTarget.min - el)}`;
+  else if (v === 'target') verdictEl.textContent = 'Dans la cible';
+  else if (v === 'warning')verdictEl.textContent = `+${el - currentTarget.max}s au-delà de la cible`;
+  else if (v === 'over')   verdictEl.textContent = `+${el - currentTarget.max}s — sur-extrait`;
+  else                     verdictEl.textContent = '';
 }
 
 function renderTS() {
@@ -426,6 +473,7 @@ function toggleTimer() {
       el++;
       updTD();
       updSH();
+      updTargetProgress();
       const tot = cR.steps.filter(s => s.d > 0).reduce((a, s) => a + s.d, 0);
       document.getElementById('prog').style.strokeDashoffset = String(553 - (553 * Math.min(el / tot, 1)));
       if (el >= tot) {
@@ -440,6 +488,7 @@ function toggleTimer() {
 function resetTimer() {
   clearInterval(tI); el = 0; run = false;
   updTD(); renderTS();
+  updTargetProgress();
   document.getElementById('btn-start').textContent = 'Démarrer';
   document.getElementById('prog').style.strokeDashoffset = '553';
   document.getElementById('timer-step-name').textContent = cR.steps.filter(s => s.d > 0)[0]?.n || '';
@@ -520,7 +569,23 @@ function showTasting() {
   document.getElementById('cust-title').value = '';
   document.getElementById('tnotes').value = '';
   renderRat(); drawW(); renderAT();
+  renderTastingVerdict();
   showScreen('tasting');
+}
+
+// Affiche la carte de verdict (sous-extrait / cible / sur-extrait) au sommet de l'écran Dégustation
+function renderTastingVerdict() {
+  const box = document.getElementById('tasting-verdict');
+  // Pas de verdict si quick-create (aucune extraction faite) ou méthode non supportée
+  if (isQC || !currentTarget || !el) { box.style.display = 'none'; return; }
+  const v = verdictExtraction(el, currentTarget);
+  if (!v) { box.style.display = 'none'; return; }
+  const cls = { target: 'vrd vrd-target', under: 'vrd vrd-under', over: 'vrd vrd-over' }[v];
+  const label = labelVerdict(v);
+  const detail = `Temps réel ${fmtSec(el)} · Cible ${fmtSec(currentTarget.min)}–${fmtSec(currentTarget.max)} (idéal ${fmtSec(currentTarget.ideal)})`;
+  box.className = cls;
+  box.style.display = 'flex';
+  box.innerHTML = `<div class="vrd-title">${label}</div><div class="vrd-detail">${detail}</div>`;
 }
 
 function tastBack() {
@@ -634,6 +699,14 @@ async function saveRec() {
     gt = document.getElementById('grind-time').value;
     liqs = getLiquidsFromUI('liquid-fields');
   }
+  // Verdict d'extraction : seulement pour les brews venant d'un vrai timer
+  // (isQC == quick-create, pas de temps réel à comparer)
+  let extractionVerdict = null;
+  let brewTimeS = null;
+  if (!isQC && currentTarget && el > 0) {
+    extractionVerdict = verdictExtraction(el, currentTarget);
+    brewTimeS = el;
+  }
   const rec = {
     cat: cCat, key: cKey, name: cR.name, catName: RR[cCat].name,
     ct: document.getElementById('cust-title').value || cR.name,
@@ -641,6 +714,8 @@ async function saveRec() {
     gsLabel: gLabel(gs, currentGrinder), grinder: currentGrinder, liqs,
     rat: tRat, fl: { ...FV }, ar: [...tAr],
     notes: document.getElementById('tnotes').value,
+    brew_time_s: brewTimeS,
+    extraction_verdict: extractionVerdict,
     date: new Date().toLocaleDateString('fr-CA'),
     time: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
     id: Date.now(), fav: false
@@ -807,7 +882,14 @@ function showDet(i) {
   const userTag = u ? `<span style="display:inline-flex;align-items:center;gap:6px;margin-left:8px;">${ubadgeHTML(u.id)}<span style="font-size:12px;color:#5a4a3a;">${u.name}</span></span>` : '';
   const isOther = r.user_id && currentUser && r.user_id !== currentUser.id;
   const cloneBtnDet = isOther ? `<button class="clone-btn" style="margin-top:12px;width:100%;" onclick="cloneBrew('${r.dbId}')">Cloner cette recette</button>` : '';
-  c.innerHTML = `<div class="ds"><div style="font-size:20px;font-weight:500;color:#3b2e22;margin-bottom:4px;">${r.ct}</div><div style="font-size:13px;color:#7a6b5a;display:flex;align-items:center;">${r.name} · ${r.catName}${userTag}</div><div style="font-size:12px;color:#9a8876;margin-top:4px;">${r.date} · ${r.time}</div><div style="margin-top:10px;">${st}</div>${cloneBtnDet}</div><div class="ds"><div class="cl">Café</div><div style="font-size:14px;color:#3b2e22;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:#5a4a3a;margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:#7a6b5a;margin-top:2px;">Origine : ${r.or}</div>` : ''}</div><div class="ds"><div class="cl">Paramètres</div><div class="mg"><div class="mc"><div class="mcv">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="mcl">g</div></div><div class="mc"><div class="mcv">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="mcl">ratio</div></div><div class="mc"><div class="mcv">${r.yield}</div><div class="mcl">ml</div></div></div></div>${liqHTML}${grindHTML}${r.fl ? `<div class="ds"><div class="cl">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}${r.ar && r.ar.length ? `<div class="ds"><div class="cl">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.ar.map(a => `<span style="font-size:12px;padding:5px 12px;background:#f0e6d8;border-radius:14px;color:#ae5630;">${a}</span>`).join('')}</div></div>` : ''}${r.notes ? `<div class="ds"><div class="cl">Notes</div><div style="font-size:13px;color:#5a4a3a;line-height:1.6;">${r.notes}</div></div>` : ''}`;
+  const vrdHTML = r.extraction_verdict ? (() => {
+    const v = r.extraction_verdict;
+    const cls = { target: 'vrd vrd-target', under: 'vrd vrd-under', over: 'vrd vrd-over' }[v];
+    const label = labelVerdict(v);
+    const timeStr = r.brew_time_s ? `Temps réel ${fmtSec(r.brew_time_s)}` : '';
+    return `<div class="${cls}" style="margin-bottom:10px;"><div class="vrd-title">${label}</div><div class="vrd-detail">${timeStr}</div></div>`;
+  })() : '';
+  c.innerHTML = `${vrdHTML}<div class="ds"><div style="font-size:20px;font-weight:500;color:#3b2e22;margin-bottom:4px;">${r.ct}</div><div style="font-size:13px;color:#7a6b5a;display:flex;align-items:center;">${r.name} · ${r.catName}${userTag}</div><div style="font-size:12px;color:#9a8876;margin-top:4px;">${r.date} · ${r.time}</div><div style="margin-top:10px;">${st}</div>${cloneBtnDet}</div><div class="ds"><div class="cl">Café</div><div style="font-size:14px;color:#3b2e22;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:#5a4a3a;margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:#7a6b5a;margin-top:2px;">Origine : ${r.or}</div>` : ''}</div><div class="ds"><div class="cl">Paramètres</div><div class="mg"><div class="mc"><div class="mcv">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="mcl">g</div></div><div class="mc"><div class="mcv">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="mcl">ratio</div></div><div class="mc"><div class="mcv">${r.yield}</div><div class="mcl">ml</div></div></div></div>${liqHTML}${grindHTML}${r.fl ? `<div class="ds"><div class="cl">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}${r.ar && r.ar.length ? `<div class="ds"><div class="cl">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${r.ar.map(a => `<span style="font-size:12px;padding:5px 12px;background:#f0e6d8;border-radius:14px;color:#ae5630;">${a}</span>`).join('')}</div></div>` : ''}${r.notes ? `<div class="ds"><div class="cl">Notes</div><div style="font-size:13px;color:#5a4a3a;line-height:1.6;">${r.notes}</div></div>` : ''}`;
   if (r.fl) { const w = document.getElementById('det-wh'); if (w) drawDW(w, r.fl); }
   showScreen('detail');
 }
