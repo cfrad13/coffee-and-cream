@@ -655,6 +655,45 @@ body::before {
 .cc-create-btn:hover { border-color: var(--copper); background: rgba(199,122,74,0.06); }
 
 /* ─── JOURNAL ─── */
+.cc-swipe-wrap {
+  position: relative;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #d76646, #8c3a20);
+}
+.cc-swipe-delete {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 96px;
+  background: transparent;
+  color: #fcf5e4;
+  border: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 12px;
+}
+.cc-swipe-delete svg { opacity: 0.95; }
+.cc-swipe-wrap > .cc-journal-card {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 0;
+  transform: translateX(0);
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), border-color .2s;
+  touch-action: pan-y;
+}
+.cc-swipe-wrap.dragging > .cc-journal-card { transition: none; }
+.cc-swipe-wrap.open > .cc-journal-card { transform: translateX(-96px); }
+
 .cc-journal-card {
   background: var(--bg-raised);
   border: 1px solid var(--line);
@@ -663,14 +702,13 @@ body::before {
   margin-bottom: 10px;
   cursor: pointer;
   position: relative;
-  transition: transform .2s, border-color .2s;
   text-align: left;
   width: 100%;
   color: var(--fg);
   font-family: inherit;
+  transition: border-color .2s;
 }
-.cc-journal-card:hover { border-color: var(--line-hi); transform: translateY(-1px); }
-.cc-journal-card:active { transform: scale(0.99); }
+.cc-journal-card:hover { border-color: var(--line-hi); }
 .cc-journal-head {
   display: flex; justify-content: space-between; align-items: flex-start;
   gap: 10px;

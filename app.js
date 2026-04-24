@@ -968,6 +968,79 @@ function verdictDotColor(v) {
   return 'var(--fg-dim)';
 }
 
+// Swipe-to-delete on journal cards. Tap to open detail; swipe left to reveal delete.
+function attachSwipe(wrap, card, onTap) {
+  let startX = 0, startY = 0, dragging = false, decided = false, opened = false, pid = null;
+  const REVEAL = 96;
+  const THRESHOLD = 40;
+
+  const closeAllOther = () => {
+    document.querySelectorAll('.cc-swipe-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
+  };
+
+  card.addEventListener('pointerdown', (e) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    startX = e.clientX; startY = e.clientY;
+    dragging = true; decided = false;
+    pid = e.pointerId;
+    opened = wrap.classList.contains('open');
+  });
+  card.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!decided) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) < Math.abs(dy)) { dragging = false; return; }
+      decided = true;
+      wrap.classList.add('dragging');
+      closeAllOther();
+      try { card.setPointerCapture(pid); } catch (_) {}
+    }
+    const base = opened ? -REVEAL : 0;
+    let x = Math.max(-REVEAL - 20, Math.min(0, base + dx));
+    card.style.transform = `translateX(${x}px)`;
+  });
+  const end = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    wrap.classList.remove('dragging');
+    if (!decided) return;
+    const dx = (e.clientX || 0) - startX;
+    const final = (opened ? -REVEAL : 0) + dx;
+    const willOpen = final < -THRESHOLD;
+    wrap.classList.toggle('open', willOpen);
+    card.style.transform = '';
+  };
+  card.addEventListener('pointerup', end);
+  card.addEventListener('pointercancel', end);
+
+  card.addEventListener('click', (e) => {
+    if (decided) {
+      e.preventDefault(); e.stopPropagation();
+      decided = false;
+      return;
+    }
+    if (wrap.classList.contains('open')) {
+      e.preventDefault(); e.stopPropagation();
+      wrap.classList.remove('open');
+      return;
+    }
+    if (onTap) onTap();
+  }, true);
+}
+
+async function delBrewByDbId(dbId) {
+  if (!dbId) return;
+  const idx = my.findIndex(r => r.dbId === dbId);
+  if (idx < 0) return;
+  if (!confirm('Supprimer cette recette ?')) return;
+  await deleteFromDB(dbId);
+  my.splice(idx, 1);
+  renderJournal();
+  updCount();
+}
+
 function renderJournal() {
   const list = document.getElementById('journal-list');
   const empty = document.getElementById('journal-empty');
@@ -982,6 +1055,14 @@ function renderJournal() {
   empty.style.display = 'none';
   items.forEach((r) => {
     const myIdx = my.indexOf(r);
+    const wrap = document.createElement('div');
+    wrap.className = 'cc-swipe-wrap';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'cc-swipe-delete';
+    delBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4a1 1 0 011-1h2a1 1 0 011 1v2m-6 0l.8 10a1 1 0 001 .9h4.4a1 1 0 001-.9L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Supprimer</span>`;
+    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); delBrewByDbId(r.dbId); };
+    wrap.appendChild(delBtn);
+
     const d = document.createElement('div');
     d.className = 'cc-journal-card';
     let stars = '';
@@ -1009,8 +1090,9 @@ function renderJournal() {
         <span style="margin-left:auto;color:var(--fg-ghost);">${r.date.slice(5)}</span>
         ${cloneBtn}
       </div>`;
-    d.onclick = () => showDet(myIdx);
-    list.appendChild(d);
+    wrap.appendChild(d);
+    attachSwipe(wrap, d, () => showDet(myIdx));
+    list.appendChild(wrap);
   });
   updCount();
 }
