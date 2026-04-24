@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coffee-cream-v10.1';
+const CACHE_NAME = 'coffee-cream-v11.0';
 // Chemins relatifs — résolus contre l'URL du service worker, donc marchent à
 // la fois sur Netlify (déployé à `/`) et sur GitHub Pages (`/coffee-and-cream/`)
 const ASSETS = [
@@ -7,9 +7,10 @@ const ASSETS = [
   './style.css',
   './recipes.js',
   './extraction.js',
+  './beans.js',
   './app.js',
   './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap',
+  'https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 

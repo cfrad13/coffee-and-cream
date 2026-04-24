@@ -1,156 +1,481 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Coffee & Cream — Journal de barista</title>
-  <meta name="description" content="Journal de barista — recettes, chrono et dégustation">
-  <meta name="theme-color" content="#ae5630">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Coffee&Cream">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link rel="manifest" href="manifest.json">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coffee &amp; Cream — Journal de barista</title>
+<meta name="description" content="Journal de barista — recettes, chrono et dégustation">
+<meta name="theme-color" content="#0f0a07">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Coffee&amp;Cream">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
 <div id="app">
 
+<!-- ══════ LOGIN ══════ -->
 <div id="screen-login" class="scr active">
-<div style="padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;background:#1a1612;">
-<div style="font-size:32px;font-weight:500;letter-spacing:-0.5px;color:#8a7560;margin-bottom:4px;">Coffee &amp; Cream</div>
-<div style="font-size:11px;color:#6b5d4e;letter-spacing:2px;margin-bottom:3rem;">JOURNAL DE BARISTA</div>
-<div style="font-size:14px;color:#6b5d4e;margin-bottom:1.25rem;">Qui es-tu?</div>
-<div id="user-buttons" style="display:flex;flex-direction:column;gap:10px;width:100%;max-width:280px;"></div>
-</div>
-</div>
-
-<div id="screen-home" class="scr">
-<div style="padding:1.75rem 1.5rem 1rem;">
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;">
-<div><div style="font-size:24px;font-weight:500;letter-spacing:-0.5px;color:#3b2e22;">Coffee &amp; Cream</div><div style="font-size:11px;color:#9a8876;margin-top:3px;letter-spacing:1.5px;">JOURNAL DE BARISTA</div></div>
-<div style="width:40px;height:40px;background:#ebe0d0;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;"><span id="bc-num" style="font-size:14px;font-weight:500;color:#ae5630;">0</span><span style="font-size:7px;color:#9a8876;letter-spacing:.5px;">BREWS</span></div>
-</div>
-<div style="display:flex;gap:0;margin-bottom:20px;background:#ebe0d0;border-radius:10px;padding:3px;">
-<button class="tab active" data-tab="recettes" onclick="switchTab('recettes')">Recettes</button>
-<button class="tab" data-tab="journal" onclick="switchTab('journal')">Journal</button>
-</div>
-<div id="tab-recettes"><div id="category-list"></div></div>
-<div id="tab-journal" style="display:none;">
-<button onclick="openQC()" class="create-btn">+ Créer une recette</button>
-<div id="journal-filter" class="seg-filter"></div>
-<div id="journal-userpick" class="user-pick" style="display:none;"></div>
-<div id="journal-list"></div>
-<div id="journal-empty" class="empty-state">Aucune recette</div>
-</div>
-</div>
-</div>
-
-<div id="screen-sub" class="scr"><div style="padding:1.25rem 1.5rem;"><div class="top-bar"><button onclick="showScreen('home')" class="bk">&#8249;</button><span id="sub-title" class="tbt"></span><div style="width:20px"></div></div><div id="sub-list"></div></div></div>
-
-<div id="screen-recipe" class="scr">
-<div style="padding:1.25rem 1.5rem;">
-<div class="top-bar"><button onclick="goBack()" class="bk">&#8249;</button><span id="recipe-title" class="tbt"></span><div style="width:20px"></div></div>
-<div id="recipe-desc" style="font-size:13px;color:#7a6b5a;margin-bottom:1.25rem;line-height:1.5;"></div>
-<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
-<div class="sp"><div class="spv" id="dose-val">18</div><div class="spl">g café</div></div>
-<div class="sp"><div class="spv" id="yield-val">36</div><div class="spl" id="yield-lbl">ml tasse</div></div>
-<div class="sp"><div class="spv" id="ratio-display">1:2</div><div class="spl">ratio</div></div>
-</div>
-<div id="milk-info" style="display:none;margin-bottom:12px;"></div>
-<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="ratio-label" class="sv"></span></div><input type="range" id="ratio-slider" class="rng"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="ratio-min"></span><span class="sh" id="ratio-max"></span></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="dose-slider-val" class="sv"></span></div><input type="range" id="dose-slider" class="rng"></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="liquid-fields"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Grinder</div><div id="grinder-sel" class="grinder-toggle"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture (grind)</div><div class="sr"><span class="sl">Grind size</span><span id="grind-size-val" class="sv"></span></div><input type="range" id="grind-size" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="grind-min-label">1 extra fin</span><span class="sh" id="grind-max-label">40 très grossier</span></div><div style="margin-top:10px;"><div class="sr"><span class="sl">Temps de grind</span></div><input type="text" id="grind-time" placeholder="Ex: 30 sec, 1 min..." class="ti" style="margin-top:4px;"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Paramètres</div><div id="params-info" style="font-size:12px;color:#5a4a3a;line-height:1.7;"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="coffee-name" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'cn')"><div id="ac-cn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="coffee-roaster" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'ro')"><div id="ac-ro" class="ad"></div></div><input type="text" id="coffee-origin" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
-<div class="cd" style="margin-bottom:14px;"><div class="cl">Étapes</div><div id="steps-preview"></div></div>
-<button onclick="startTimer()" class="pri">Suivant</button>
-</div>
-</div>
-
-<div id="screen-timer" class="scr">
-<div style="padding:1.25rem 1.5rem;">
-<div class="top-bar"><button onclick="stopTimer();showScreen('recipe')" class="bk">&#8249;</button><span id="timer-title" class="tbt"></span><div style="width:20px"></div></div>
-<div style="text-align:center;margin:1.5rem 0;">
-<div style="position:relative;width:200px;height:200px;margin:0 auto;">
-<svg width="200" height="200" viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" fill="none" stroke="#ebe0d0" stroke-width="4"/><circle id="prog" cx="100" cy="100" r="88" fill="none" stroke="#ae5630" stroke-width="4" stroke-linecap="round" stroke-dasharray="553" stroke-dashoffset="553" transform="rotate(-90 100 100)" style="transition:stroke-dashoffset 0.3s;"/></svg>
-<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;"><div id="timer-display" style="font-size:44px;font-weight:500;color:#3b2e22;font-variant-numeric:tabular-nums;letter-spacing:1px;">0:00</div><div id="timer-step-name" style="font-size:12px;color:#ae5630;margin-top:2px;"></div></div>
-</div>
-<div id="timer-total" style="font-size:12px;color:#9a8876;margin-top:8px;"></div>
-<div id="target-zone" style="margin-top:12px;display:none;">
-  <div id="target-label" style="font-size:12px;color:#7a6b5a;margin-bottom:6px;"></div>
-  <div style="max-width:260px;margin:0 auto;height:6px;background:#e8ddd0;border-radius:3px;position:relative;overflow:hidden;">
-    <div id="target-zone-bar" style="position:absolute;top:0;height:100%;background:rgba(59,107,77,0.25);border-radius:3px;"></div>
-    <div id="target-progress" style="position:absolute;top:0;left:0;height:100%;width:0%;background:#7a6b5a;border-radius:3px;transition:width .3s,background .3s;"></div>
+  <div class="cc-screen" style="display:flex;flex-direction:column;justify-content:center;min-height:100dvh;padding:40px 28px 80px;">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div class="cc-eyebrow" style="margin-bottom:12px;">JOURNAL DE BARISTA</div>
+      <div class="cc-display" style="font-size:42px;color:var(--crema);">
+        Coffee <em style="font-style:italic;font-weight:400;color:var(--copper);">&amp;</em> Cream
+      </div>
+      <div style="font-size:13px;color:var(--fg-muted);margin-top:18px;font-family:'Fraunces',serif;font-style:italic;">
+        Qui es-tu ce matin&nbsp;?
+      </div>
+    </div>
+    <div id="user-buttons" class="cc-stagger" style="display:flex;flex-direction:column;gap:10px;"></div>
   </div>
-  <div id="target-verdict" style="font-size:11px;margin-top:6px;font-weight:500;"></div>
-</div>
-</div>
-<div id="timer-steps" style="margin-bottom:1.25rem;"></div>
-<div style="display:flex;gap:10px;"><button id="btn-start" onclick="toggleTimer()" class="pri" style="flex:1;">Démarrer</button><button onclick="resetTimer()" class="sec">Reset</button></div>
-</div>
 </div>
 
+<!-- ══════ ONBOARDING / WELCOME ══════ -->
+<div id="screen-welcome" class="scr">
+  <div class="cc-screen" id="welcome-body" style="display:flex;flex-direction:column;min-height:100dvh;padding:48px 28px 40px;text-align:center;">
+    <!-- content injected by JS -->
+  </div>
+</div>
+
+<!-- ══════ PATCH NOTES ══════ -->
+<div id="screen-patch" class="scr">
+  <div class="cc-screen" id="patch-body" style="min-height:100dvh;padding:48px 24px 40px;">
+    <!-- content injected by JS -->
+  </div>
+</div>
+
+<!-- ══════ HOME ══════ -->
+<div id="screen-home" class="scr">
+  <div class="cc-screen">
+    <div class="cc-row-between" style="margin-bottom:26px;">
+      <div>
+        <div class="cc-display" style="font-size:28px;">
+          Coffee <em style="font-style:italic;color:var(--copper);">&amp;</em> Cream
+        </div>
+        <div class="cc-eyebrow" style="margin-top:4px;">JOURNAL DE BARISTA</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button class="cc-theme-toggle" onclick="toggleTheme()" aria-label="Basculer thème" title="Thème">
+          <span id="theme-icon"></span>
+        </button>
+        <button class="cc-bc" onclick="switchUser()" title="Changer d'utilisateur">
+          <span id="bc-num" class="n">0</span>
+          <span class="l">BREWS</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="cc-tabs" role="tablist">
+      <button class="cc-tab" data-tab="journal" onclick="switchTab('journal')">Journal</button>
+      <button class="cc-tab" data-tab="recettes" onclick="switchTab('recettes')">Recettes</button>
+    </div>
+
+    <div id="tab-journal">
+      <button class="cc-create-btn cc-tap" onclick="openQC()">+ Créer une recette</button>
+      <div id="journal-filter" class="cc-seg-filter"></div>
+      <div id="journal-userpick" class="cc-user-pick" style="display:none;"></div>
+      <div id="journal-list" class="cc-stagger"></div>
+      <div id="journal-empty" class="cc-empty" style="display:none;">Aucune recette</div>
+    </div>
+
+    <div id="tab-recettes" style="display:none;">
+      <div id="category-list" class="cc-stagger"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ BEANS ══════ -->
+<div id="screen-beans" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="showScreen('home')">‹</button>
+      <span class="cc-title-bar">Mes grains</span>
+      <div style="width:36px"></div>
+    </div>
+    <div class="cc-eyebrow" style="margin-bottom:8px;">COLLECTION</div>
+    <div id="beans-headline" class="cc-display" style="font-size:26px;margin-bottom:24px;"></div>
+    <div id="beans-list" class="cc-stagger"></div>
+    <button class="cc-create-btn cc-tap" style="margin-top:20px;" onclick="openBeanEditor()">+ Ajouter un sac</button>
+  </div>
+</div>
+
+<!-- ══════ BEAN DETAIL ══════ -->
+<div id="screen-bean-detail" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="showScreen('beans')">‹</button>
+      <span class="cc-title-bar" id="bean-detail-title">Sac</span>
+      <div style="width:36px"></div>
+    </div>
+    <div id="bean-detail-content"></div>
+  </div>
+</div>
+
+<!-- ══════ BEAN EDITOR ══════ -->
+<div id="screen-bean-editor" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="showScreen('beans')">‹</button>
+      <span class="cc-title-bar" id="bean-editor-title">Nouveau sac</span>
+      <div style="width:36px"></div>
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Nom</div>
+      <input type="text" id="bean-name" class="cc-input" placeholder="Ex: Ethiopia Yirgacheffe">
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Torréfacteur</div>
+      <input type="text" id="bean-roaster" class="cc-input" placeholder="Ex: Café Myriade">
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Origine</div>
+      <input type="text" id="bean-origin" class="cc-input" placeholder="Ex: Éthiopie">
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Procédé</div>
+      <input type="text" id="bean-process" class="cc-input" placeholder="Ex: Lavé, Honey, Natural">
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Torréfaction</div>
+      <select id="bean-roast" class="cc-input" style="cursor:pointer;">
+        <option value="Clair">Clair</option>
+        <option value="Medium-Clair">Medium-Clair</option>
+        <option value="Medium" selected>Medium</option>
+        <option value="Medium-Foncé">Medium-Foncé</option>
+        <option value="Foncé">Foncé</option>
+      </select>
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Date de torréfaction</div>
+      <input type="date" id="bean-roast-date" class="cc-input">
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Poids (g)</div>
+      <div style="display:flex;gap:10px;">
+        <input type="number" id="bean-weight" class="cc-input" placeholder="Total (340)" value="340">
+        <input type="number" id="bean-weight-left" class="cc-input" placeholder="Restant">
+      </div>
+    </div>
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Notes de dégustation (séparées par virgule)</div>
+      <input type="text" id="bean-notes" class="cc-input" placeholder="Bergamote, Jasmin, Miel">
+    </div>
+    <div class="cc-card tight cc-mb-14">
+      <div class="cc-label">Couleur du sac</div>
+      <input type="color" id="bean-color" value="#8c4a28" style="width:100%;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg-input);cursor:pointer;">
+    </div>
+    <button class="cc-btn-primary cc-tap" onclick="saveBean()" style="margin-bottom:8px;">Sauvegarder</button>
+    <button class="cc-btn-ghost cc-tap" onclick="showScreen('beans')">Annuler</button>
+    <button class="cc-btn-ghost cc-tap" id="bean-delete-btn" onclick="deleteBean()" style="margin-top:8px;color:var(--bad);border-color:rgba(215,102,70,0.3);display:none;">Supprimer ce sac</button>
+  </div>
+</div>
+
+<!-- ══════ SUB LIST ══════ -->
+<div id="screen-sub" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="showScreen('home')">‹</button>
+      <span id="sub-title" class="cc-title-bar"></span>
+      <div style="width:36px"></div>
+    </div>
+    <div id="sub-list" class="cc-stagger"></div>
+  </div>
+</div>
+
+<!-- ══════ RECIPE ══════ -->
+<div id="screen-recipe" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="goBack()">‹</button>
+      <span id="recipe-title" class="cc-title-bar"></span>
+      <div style="width:36px"></div>
+    </div>
+    <div id="recipe-desc" style="font-size:13px;color:var(--fg-muted);margin-bottom:20px;font-family:'Fraunces',serif;font-style:italic;line-height:1.5;"></div>
+
+    <div class="cc-stats-grid">
+      <div class="cc-stat"><div class="v" id="dose-val">18</div><div class="l">g café</div></div>
+      <div class="cc-stat"><div class="v" id="yield-val">36</div><div class="l" id="yield-lbl">ml tasse</div></div>
+      <div class="cc-stat"><div class="v" id="ratio-display">1:2</div><div class="l">ratio</div></div>
+    </div>
+
+    <div id="milk-info" style="display:none;margin-bottom:10px;"></div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-slider-row"><span class="cc-slider-label">Ratio</span><span id="ratio-label" class="cc-slider-val"></span></div>
+      <input type="range" id="ratio-slider" class="cc-rng">
+      <div class="cc-slider-hints"><span id="ratio-min"></span><span id="ratio-max"></span></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-slider-row"><span class="cc-slider-label">Dose</span><span id="dose-slider-val" class="cc-slider-val"></span></div>
+      <input type="range" id="dose-slider" class="cc-rng">
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Liquides (ml)</div>
+      <div id="liquid-fields"></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Grinder</div>
+      <div id="grinder-sel" class="cc-grinder-toggle"></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Mouture (grind)</div>
+      <div class="cc-slider-row"><span class="cc-slider-label">Grind size</span><span id="grind-size-val" class="cc-slider-val"></span></div>
+      <input type="range" id="grind-size" class="cc-rng" min="1" max="40" step="1" value="20">
+      <div class="cc-slider-hints"><span id="grind-min-label">1 extra fin</span><span id="grind-max-label">40 très grossier</span></div>
+      <div style="margin-top:10px;">
+        <input type="text" id="grind-time" placeholder="Temps de grind (ex: 30 sec)" class="cc-input">
+      </div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Paramètres</div>
+      <div id="params-info" style="font-size:12px;color:var(--fg-muted);line-height:1.7;"></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Mon café</div>
+      <div id="bean-picker" class="cc-bean-picker"></div>
+      <div id="bean-selected-box"></div>
+      <div id="custom-coffee-box" style="display:none;margin-top:12px;">
+        <div class="cc-aw">
+          <input type="text" id="coffee-name" placeholder="Nom du café..." class="cc-input" autocomplete="off" oninput="showAC(this,'cn')">
+          <div id="ac-cn" class="cc-ad"></div>
+        </div>
+        <div class="cc-aw" style="margin-top:8px;">
+          <input type="text" id="coffee-roaster" placeholder="Torréfacteur" class="cc-input" autocomplete="off" oninput="showAC(this,'ro')">
+          <div id="ac-ro" class="cc-ad"></div>
+        </div>
+        <input type="text" id="coffee-origin" placeholder="Origine" class="cc-input" style="margin-top:8px;">
+      </div>
+    </div>
+
+    <div class="cc-card tight cc-mb-14">
+      <div class="cc-label">Étapes</div>
+      <div id="steps-preview"></div>
+    </div>
+
+    <button onclick="startTimer()" class="cc-btn-primary cc-tap">Préparer l'extraction</button>
+  </div>
+</div>
+
+<!-- ══════ TIMER ══════ -->
+<div id="screen-timer" class="scr">
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="stopTimer();showScreen('recipe');">‹</button>
+      <span id="timer-title" class="cc-title-bar"></span>
+      <div style="width:36px"></div>
+    </div>
+
+    <div class="cc-timer-stage" id="timer-stage">
+      <svg width="260" height="260" viewBox="0 0 260 260" style="position:absolute;inset:0;">
+        <defs>
+          <radialGradient id="gaugeFace" cx="50%" cy="35%" r="70%">
+            <stop offset="0" stop-color="#2a2019"/>
+            <stop offset="0.7" stop-color="#181210"/>
+            <stop offset="1" stop-color="#0f0a07"/>
+          </radialGradient>
+          <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3a2d22"/>
+            <stop offset="1" stop-color="#1a120d"/>
+          </linearGradient>
+        </defs>
+        <circle cx="130" cy="130" r="128" fill="url(#bezel)" stroke="rgba(210,175,135,0.15)" stroke-width="1"/>
+        <circle cx="130" cy="130" r="122" fill="none" stroke="rgba(0,0,0,0.4)" stroke-width="2"/>
+        <circle cx="130" cy="130" r="118" fill="url(#gaugeFace)"/>
+        <g id="gauge-ticks"></g>
+        <circle id="gauge-band" cx="130" cy="130" r="112" fill="none" stroke="rgba(127,174,110,0.4)" stroke-width="8" stroke-dasharray="0 9999" style="filter:drop-shadow(0 0 4px rgba(127,174,110,0.3));"/>
+        <circle id="gauge-prog" cx="130" cy="130" r="112" fill="none" stroke="#e9a962" stroke-width="3" stroke-linecap="round" stroke-dasharray="703" stroke-dashoffset="703" transform="rotate(-225 130 130)"/>
+        <text x="60" y="210" fill="#8a7a6a" font-size="9" font-family="Inter" letter-spacing="1" opacity="0.5">UNDER</text>
+        <text x="200" y="210" fill="#8a7a6a" font-size="9" font-family="Inter" letter-spacing="1" text-anchor="end" opacity="0.5">OVER</text>
+      </svg>
+      <div id="gauge-needle" style="position:absolute;left:50%;top:50%;width:2px;height:104px;background:linear-gradient(180deg,var(--crema),rgba(233,169,98,0.4));transform-origin:bottom center;transform:translate(-50%,-100%) rotate(-135deg);border-radius:2px;box-shadow:0 0 8px var(--crema);z-index:2;transition:transform .3s ease, background .3s ease, box-shadow .3s ease;"></div>
+      <div style="position:absolute;left:50%;top:50%;width:14px;height:14px;background:radial-gradient(circle at 35% 35%, #c77a4a, #4a2418);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 4px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.2);z-index:3;"></div>
+      <div style="position:absolute;left:0;right:0;top:60px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:1;">
+        <div id="timer-display" class="cc-timer-num" style="color:var(--fg);">0:00</div>
+        <div id="timer-step-name" class="cc-timer-step"></div>
+      </div>
+    </div>
+
+    <div id="target-zone" class="cc-target-zone" style="display:none;">
+      <div class="cc-target-track">
+        <div id="target-zone-bar" class="cc-target-band"></div>
+        <div id="target-progress" class="cc-target-fill" style="width:0%;"></div>
+      </div>
+      <div id="target-verdict" class="cc-target-verdict"></div>
+    </div>
+    <div id="timer-total" style="font-size:11px;color:var(--fg-dim);margin-top:10px;text-align:center;font-variant-numeric:tabular-nums;"></div>
+
+    <div id="timer-steps" style="margin:20px 0 14px;"></div>
+
+    <div class="cc-timer-btn-row">
+      <button id="btn-start" onclick="toggleTimer()" class="cc-btn-primary cc-tap">Démarrer</button>
+      <button onclick="resetTimer()" class="cc-btn-secondary cc-tap">Reset</button>
+      <button id="btn-next" onclick="goToSmoke()" class="cc-btn-secondary cc-tap" style="display:none;background:var(--copper);color:var(--btn-fg);">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SMOKE ══════ -->
 <div id="screen-smoke" class="scr">
-<div style="padding:2rem 1.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:500px;">
-<div style="position:relative;width:120px;height:160px;margin-bottom:2rem;">
-<div class="smoke-wrap">
-<div class="smoke s1"></div>
-<div class="smoke s2"></div>
-<div class="smoke s3"></div>
-</div>
-<svg width="120" height="100" viewBox="0 0 120 100" style="position:absolute;bottom:0;left:0;">
-<path d="M15 10 Q15 0 25 0 L95 0 Q105 0 105 10 L105 65 Q105 75 95 75 L85 75 L80 90 L75 75 L25 75 Q15 75 15 65 Z" fill="#ae5630" opacity="0.9"/>
-<ellipse cx="60" cy="8" rx="35" ry="6" fill="#8a3a1a" opacity="0.3"/>
-<path d="M108 25 Q120 25 118 35 Q116 45 108 42" fill="none" stroke="#ae5630" stroke-width="3" stroke-linecap="round"/>
-</svg>
-</div>
-<div style="font-size:28px;font-weight:500;color:#3b2e22;letter-spacing:-0.5px;margin-bottom:3rem;">Smoke That Cream</div>
-<button onclick="showTasting()" class="pri" style="max-width:280px;">Continuer vers la dégustation</button>
-<button onclick="skipSmoke()" class="gho" style="max-width:280px;margin-top:10px;">Passer</button>
-</div>
+  <div class="cc-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;padding:40px 24px 80px;">
+    <div class="cc-smoke-wrap">
+      <div class="cc-steam s1"></div>
+      <div class="cc-steam s2"></div>
+      <div class="cc-steam s3"></div>
+      <div class="cc-steam s4"></div>
+      <svg width="160" height="200" viewBox="0 0 160 200" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);">
+        <defs>
+          <linearGradient id="cupGrad2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#c77a4a"/>
+            <stop offset="1" stop-color="#6a3418"/>
+          </linearGradient>
+        </defs>
+        <ellipse cx="80" cy="192" rx="62" ry="6" fill="rgba(0,0,0,0.6)"/>
+        <path d="M25 30 Q22 20 32 20 L128 20 Q138 20 135 30 L125 160 Q123 180 105 180 L55 180 Q37 180 35 160 Z" fill="url(#cupGrad2)"/>
+        <ellipse cx="80" cy="22" rx="48" ry="6" fill="rgba(0,0,0,0.3)"/>
+        <path d="M137 50 Q160 50 158 80 Q156 110 137 108" fill="none" stroke="#8c4a28" stroke-width="5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="cc-display" style="font-size:36px;margin-top:40px;color:var(--crema);text-align:center;">
+      Smoke <em style="font-style:italic;color:var(--copper);">that</em> Cream
+    </div>
+    <div style="font-size:13px;color:var(--fg-muted);margin-top:14px;font-family:'Fraunces',serif;font-style:italic;text-align:center;">
+      Laisse reposer, hume, déguste.
+    </div>
+    <div style="width:100%;max-width:280px;margin-top:40px;display:flex;flex-direction:column;gap:10px;">
+      <button onclick="showTasting()" class="cc-btn-primary cc-tap">Continuer vers la dégustation</button>
+      <button onclick="skipSmoke()" class="cc-btn-ghost cc-tap">Passer</button>
+    </div>
+  </div>
 </div>
 
+<!-- ══════ TASTING ══════ -->
 <div id="screen-tasting" class="scr">
-<div style="padding:1.25rem 1.5rem;">
-<div class="top-bar"><button onclick="tastBack()" class="bk">&#8249;</button><span class="tbt">Dégustation</span><div style="width:20px"></div></div>
-<div id="tasting-verdict" class="cd" style="margin-bottom:10px;display:none;"></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Titre de ma recette</div><input type="text" id="cust-title" placeholder="Ex: Mon latte du dimanche..." class="ti"></div>
-<div id="qc-section" style="display:none;">
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Méthode</div><select id="qc-method" class="ti" style="cursor:pointer;" onchange="updQC()"></select></div>
-<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Dose</span><span id="qc-dv" class="sv"></span></div><input type="range" id="qc-dose" class="rng"></div>
-<div class="cd" style="margin-bottom:10px;"><div class="sr"><span class="sl">Ratio</span><span id="qc-rv" class="sv"></span></div><input type="range" id="qc-ratio" class="rng"></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Liquides (ml)</div><div id="qc-liquid-fields"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Grinder</div><div id="qc-grinder-sel" class="grinder-toggle"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mouture</div><div class="sr"><span class="sl">Grind size</span><span id="qc-gs-val" class="sv"></span></div><input type="range" id="qc-gs" class="rng" min="1" max="40" step="1" value="20"><div style="display:flex;justify-content:space-between;margin-top:3px;"><span class="sh" id="qc-grind-min-label">1 extra fin</span><span class="sh" id="qc-grind-max-label">40 très grossier</span></div><div style="margin-top:10px;"><span class="sl">Temps de grind</span><input type="text" id="qc-gt" placeholder="Ex: 30 sec..." class="ti" style="margin-top:4px;"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Mon café</div><div class="aw"><input type="text" id="qc-cn" placeholder="Nom du café..." class="ti" autocomplete="off" oninput="showAC(this,'qcn')"><div id="ac-qcn" class="ad"></div></div><div class="aw" style="margin-top:6px;"><input type="text" id="qc-ro" placeholder="Torréfacteur" class="ti" autocomplete="off" oninput="showAC(this,'qro')"><div id="ac-qro" class="ad"></div></div><input type="text" id="qc-or" placeholder="Origine" class="ti" style="margin-top:6px;"></div>
-</div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Ma cote</div><div id="stars" style="display:flex;gap:6px;justify-content:center;padding:4px 0;"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Roue des saveurs</div><div style="text-align:center;padding:6px 0;"><svg id="fw" width="260" height="260" viewBox="0 0 260 260"></svg></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Arômes</div><div id="atags" style="display:flex;flex-wrap:wrap;gap:6px;"></div></div>
-<div class="cd" style="margin-bottom:10px;"><div class="cl">Notes</div><textarea id="tnotes" placeholder="Impressions, texture..." class="ta"></textarea></div>
-<button onclick="saveRec()" class="pri" style="margin-bottom:8px;">Sauvegarder</button>
-<button onclick="cancelTast()" class="gho">Annuler</button>
-</div>
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="tastBack()">‹</button>
+      <span class="cc-title-bar">Dégustation</span>
+      <div style="width:36px"></div>
+    </div>
+
+    <div id="tasting-verdict" class="cc-verdict cc-mb-10" style="display:none;"></div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Titre de ma recette</div>
+      <input type="text" id="cust-title" placeholder="Ex: Mon latte du dimanche..." class="cc-input">
+    </div>
+
+    <div id="qc-section" style="display:none;">
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-label">Méthode</div>
+        <select id="qc-method" class="cc-input" style="cursor:pointer;" onchange="updQC()"></select>
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-slider-row"><span class="cc-slider-label">Dose</span><span id="qc-dv" class="cc-slider-val"></span></div>
+        <input type="range" id="qc-dose" class="cc-rng">
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-slider-row"><span class="cc-slider-label">Ratio</span><span id="qc-rv" class="cc-slider-val"></span></div>
+        <input type="range" id="qc-ratio" class="cc-rng">
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-label">Liquides (ml)</div>
+        <div id="qc-liquid-fields"></div>
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-label">Grinder</div>
+        <div id="qc-grinder-sel" class="cc-grinder-toggle"></div>
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-label">Mouture</div>
+        <div class="cc-slider-row"><span class="cc-slider-label">Grind size</span><span id="qc-gs-val" class="cc-slider-val"></span></div>
+        <input type="range" id="qc-gs" class="cc-rng" min="1" max="40" step="1" value="20">
+        <div class="cc-slider-hints"><span id="qc-grind-min-label">1 extra fin</span><span id="qc-grind-max-label">40 très grossier</span></div>
+        <div style="margin-top:10px;">
+          <input type="text" id="qc-gt" placeholder="Temps de grind (ex: 30 sec)" class="cc-input">
+        </div>
+      </div>
+      <div class="cc-card tight cc-mb-10">
+        <div class="cc-label">Mon café</div>
+        <div class="cc-aw"><input type="text" id="qc-cn" placeholder="Nom du café..." class="cc-input" autocomplete="off" oninput="showAC(this,'qcn')"><div id="ac-qcn" class="cc-ad"></div></div>
+        <div class="cc-aw" style="margin-top:8px;"><input type="text" id="qc-ro" placeholder="Torréfacteur" class="cc-input" autocomplete="off" oninput="showAC(this,'qro')"><div id="ac-qro" class="cc-ad"></div></div>
+        <input type="text" id="qc-or" placeholder="Origine" class="cc-input" style="margin-top:8px;">
+      </div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Ma cote</div>
+      <div id="stars"></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Roue des saveurs</div>
+      <div style="text-align:center;padding:6px 0;">
+        <svg id="fw" width="260" height="260" viewBox="0 0 260 260"></svg>
+      </div>
+    </div>
+
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Arômes</div>
+      <div id="atags"></div>
+    </div>
+
+    <div class="cc-card tight cc-mb-14">
+      <div class="cc-label">Notes</div>
+      <textarea id="tnotes" placeholder="Impressions, texture..." class="cc-textarea"></textarea>
+    </div>
+
+    <button onclick="saveRec()" class="cc-btn-primary cc-tap" style="margin-bottom:8px;">Sauvegarder</button>
+    <button onclick="cancelTast()" class="cc-btn-ghost cc-tap">Annuler</button>
+  </div>
 </div>
 
+<!-- ══════ DETAIL ══════ -->
 <div id="screen-detail" class="scr">
-<div style="padding:1.25rem 1.5rem;">
-<div class="top-bar"><button onclick="showScreen('home');switchTab('mesrecettes')" class="bk">&#8249;</button><span class="tbt">Détail</span><div style="width:20px"></div></div>
-<div id="det-content"></div>
-<button onclick="delRec()" class="gho" style="margin-top:12px;color:#993322;border-color:#ddb8a8;">Supprimer</button>
-</div>
+  <div class="cc-screen">
+    <div class="cc-topbar">
+      <button class="cc-back" onclick="showScreen('home');switchTab('journal');">‹</button>
+      <span class="cc-title-bar">Détail</span>
+      <div style="width:36px"></div>
+    </div>
+    <div id="det-content"></div>
+    <button onclick="delRec()" class="cc-btn-ghost cc-tap" style="margin-top:12px;color:var(--bad);border-color:rgba(215,102,70,0.3);">Supprimer</button>
+  </div>
 </div>
 
 </div>
+
+<!-- ══════ BOTTOM NAV ══════ -->
+<nav id="bottom-nav" class="cc-bnav" style="display:none;">
+  <button class="cc-bnav-item" data-nav="home" onclick="navTo('home')">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M15 7h2a1 1 0 011 1v3a1 1 0 01-1 1h-2" stroke="currentColor" stroke-width="1.5"/><path d="M4 16h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Recettes</span>
+  </button>
+  <button class="cc-bnav-item" data-nav="beans" onclick="navTo('beans')">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><ellipse cx="10" cy="10" rx="5" ry="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 3c0 4.5 0 10 0 14" stroke="currentColor" stroke-width="1.5"/></svg>
+    <span>Grains</span>
+  </button>
+  <button class="cc-bnav-item" data-nav="patch" onclick="navTo('patch')">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="1.5"/><path d="M10 6v4l2.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <span>Notes</span>
+  </button>
+</nav>
 
 <script src="recipes.js"></script>
 <script src="extraction.js"></script>
+<script src="beans.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
