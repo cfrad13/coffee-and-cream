@@ -1034,6 +1034,8 @@ async function delBrewByDbId(dbId) {
   if (!dbId) return;
   const idx = my.findIndex(r => r.dbId === dbId);
   if (idx < 0) return;
+  // Sécurité : seul le propriétaire peut supprimer
+  if (!currentUser || my[idx].user_id !== currentUser.id) return;
   if (!confirm('Supprimer cette recette ?')) return;
   await deleteFromDB(dbId);
   my.splice(idx, 1);
@@ -1055,13 +1057,7 @@ function renderJournal() {
   empty.style.display = 'none';
   items.forEach((r) => {
     const myIdx = my.indexOf(r);
-    const wrap = document.createElement('div');
-    wrap.className = 'cc-swipe-wrap';
-    const delBtn = document.createElement('button');
-    delBtn.className = 'cc-swipe-delete';
-    delBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4a1 1 0 011-1h2a1 1 0 011 1v2m-6 0l.8 10a1 1 0 001 .9h4.4a1 1 0 001-.9L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Supprimer</span>`;
-    delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); delBrewByDbId(r.dbId); };
-    wrap.appendChild(delBtn);
+    const isMine = currentUser && r.user_id === currentUser.id;
 
     const d = document.createElement('div');
     d.className = 'cc-journal-card';
@@ -1090,9 +1086,22 @@ function renderJournal() {
         <span style="margin-left:auto;color:var(--fg-ghost);">${r.date.slice(5)}</span>
         ${cloneBtn}
       </div>`;
-    wrap.appendChild(d);
-    attachSwipe(wrap, d, () => showDet(myIdx));
-    list.appendChild(wrap);
+
+    if (isMine) {
+      const wrap = document.createElement('div');
+      wrap.className = 'cc-swipe-wrap';
+      const delBtn = document.createElement('button');
+      delBtn.className = 'cc-swipe-delete';
+      delBtn.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 6h12M8 6V4a1 1 0 011-1h2a1 1 0 011 1v2m-6 0l.8 10a1 1 0 001 .9h4.4a1 1 0 001-.9L15 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Supprimer</span>`;
+      delBtn.onclick = (e) => { e.preventDefault(); e.stopPropagation(); delBrewByDbId(r.dbId); };
+      wrap.appendChild(delBtn);
+      wrap.appendChild(d);
+      attachSwipe(wrap, d, () => showDet(myIdx));
+      list.appendChild(wrap);
+    } else {
+      d.onclick = () => showDet(myIdx);
+      list.appendChild(d);
+    }
   });
   updCount();
 }
