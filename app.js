@@ -46,7 +46,7 @@ let grindersData = [];
 var grinderUUIDs = {};
 var allUsers = [];
 var usersById = {};
-var journalFilter = { type: 'all', userId: null };
+var journalFilter = { type: 'mine', userId: null };
 let currentTarget = null;
 let prevScreen = 'home';
 
@@ -927,7 +927,6 @@ function renderJournalFilter() {
     if (u) userPillLabel = `${ubadgeHTML(u.id)} ${u.name}`;
   }
   c.innerHTML = `
-    <button class="cc-seg-pill${active('all')}"  onclick="setJournalFilter('all')">Toutes</button>
     <button class="cc-seg-pill${active('mine')}" onclick="setJournalFilter('mine')">Miennes</button>
     <button class="cc-seg-pill${active('user')}" onclick="toggleUserPicker()">${userPillLabel}</button>
     <button class="cc-seg-pill${active('favs')}" onclick="setJournalFilter('favs')">Favoris</button>`;
