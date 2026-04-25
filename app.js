@@ -2,8 +2,25 @@
 // Coffee & Cream — app.js (v11 redesign)
 // ═══════════════════════════════════════════════════════════════
 
-const APP_VERSION = 'v11.0';
+const APP_VERSION = 'v12.0';
 const PATCH_NOTES = [
+  {
+    version: 'v12.0',
+    date: '2026-04-25',
+    title: 'Shop social, BaristIA & photos de tasse',
+    items: [
+      { tag: 'NOUVEAU', text: "Onglet Shop dans le Journal — feed social des recettes des autres baristas" },
+      { tag: 'NOUVEAU', text: "Capture photo de la tasse à l'étape Dégustation, vignette dans le feed" },
+      { tag: 'NOUVEAU', text: "Commentaires style chat MSN sur chaque recette, persistance Supabase" },
+      { tag: 'NOUVEAU', text: "BaristIA — coach barista avec conseils contextuels selon ta question" },
+      { tag: 'NOUVEAU', text: "Swipe vers la gauche sur tes propres recettes pour les supprimer" },
+      { tag: 'DESIGN', text: "Filtres Journal réordonnés (Shop / Miennes / Favoris), retrait de Toutes" },
+      { tag: 'DESIGN', text: "Pastille NEW pulsante pour repérer les nouvelles features" },
+      { tag: 'DESIGN', text: "Commentaires montés juste sous les stats sur la page Détail" },
+      { tag: 'FIX', text: "Roue des saveurs cliquable même quand un secteur est à 0" },
+      { tag: 'FIX', text: "Plus de zoom intempestif sur iOS quand on touche un champ texte" },
+    ],
+  },
   {
     version: 'v11.0',
     date: '2026-04-24',
