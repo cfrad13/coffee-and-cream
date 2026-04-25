@@ -39,6 +39,8 @@ FL.forEach(l => FV[l] = 2);
 let cCat = null, cKey = null, cR = null, tI = null, el = 0, run = false, isQC = false;
 let my = [];
 let tRat = 0, tAr = [], dIdx = -1;
+let tPhoto = null; // base64 data URL captured on tasting
+let coachMessages = []; // chat history
 let curLiquids = {};
 let currentUser = null;
 let currentGrinder = localStorage.getItem('cc_grinder') || 'baratza';
@@ -223,7 +225,9 @@ function mapBrewFromDB(row) {
     user_id: row.user_id, user_name: fp.user_name || '',
     brew_time_s: row.brew_time_s || null,
     extraction_verdict: row.extraction_verdict || null,
-    beanId: fp.beanId || null
+    beanId: fp.beanId || null,
+    photo: fp.photo || null,
+    comments: Array.isArray(fp.comments) ? fp.comments : []
   };
 }
 
@@ -235,6 +239,8 @@ async function saveToDB(rec, opts) {
     gt: rec.gt, gsLabel: rec.gsLabel,
     liqs: rec.liqs, fl: rec.fl,
     beanId: rec.beanId || null,
+    photo: rec.photo || null,
+    comments: rec.comments || [],
     user_name: currentUser.name
   };
   if (opts && opts.cloned_from_dbid) fp.cloned_from_dbid = opts.cloned_from_dbid;
@@ -682,7 +688,8 @@ function skipSmoke() { cancelTast(); }
 
 // ── Quick create ──
 function openQC() {
-  isQC = true; tRat = 0; tAr = [];
+  isQC = true; tRat = 0; tAr = []; tPhoto = null;
+  refreshPhotoUI();
   FL.forEach(l => FV[l] = 2);
   document.getElementById('cust-title').value = '';
   document.getElementById('tnotes').value = '';
@@ -730,7 +737,8 @@ function updQC() {
 // ── Tasting ──
 function showTasting() {
   if (!isQC) document.getElementById('qc-section').style.display = 'none';
-  tRat = 0; tAr = [];
+  tRat = 0; tAr = []; tPhoto = null;
+  refreshPhotoUI();
   FL.forEach(l => FV[l] = 2);
   document.getElementById('cust-title').value = '';
   document.getElementById('tnotes').value = '';
@@ -901,6 +909,8 @@ async function saveRec() {
     brew_time_s: brewTimeS,
     extraction_verdict: extractionVerdict,
     beanId: (!isQC && selectedBeanId && selectedBeanId !== '__custom__') ? selectedBeanId : null,
+    photo: tPhoto || null,
+    comments: [],
     date: new Date().toLocaleDateString('fr-CA'),
     time: new Date().toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' }),
     id: Date.now(), fav: false
@@ -924,7 +934,7 @@ async function saveRec() {
 // ── Journal ──
 function filteredBrews() {
   if (journalFilter.type === 'mine' && currentUser) return my.filter(r => r.user_id === currentUser.id);
-  if (journalFilter.type === 'user' && journalFilter.userId) return my.filter(r => r.user_id === journalFilter.userId);
+  if (journalFilter.type === 'shop'  && currentUser) return my.filter(r => r.user_id !== currentUser.id);
   if (journalFilter.type === 'favs') return my.filter(r => r.fav);
   return my;
 }
@@ -932,40 +942,16 @@ function filteredBrews() {
 function renderJournalFilter() {
   const c = document.getElementById('journal-filter');
   const active = (t) => journalFilter.type === t ? ' active' : '';
-  let userPillLabel = 'Par user';
-  if (journalFilter.type === 'user' && journalFilter.userId) {
-    const u = usersById[journalFilter.userId];
-    if (u) userPillLabel = `${ubadgeHTML(u.id)} ${u.name}`;
-  }
   c.innerHTML = `
+    <button class="cc-seg-pill${active('shop')}" onclick="setJournalFilter('shop')">Shop</button>
     <button class="cc-seg-pill${active('mine')}" onclick="setJournalFilter('mine')">Miennes</button>
-    <button class="cc-seg-pill${active('user')}" onclick="toggleUserPicker()">${userPillLabel}</button>
     <button class="cc-seg-pill${active('favs')}" onclick="setJournalFilter('favs')">Favoris</button>`;
   const picker = document.getElementById('journal-userpick');
-  if (journalFilter.type === 'user' || journalFilter._pickerOpen) {
-    picker.style.display = 'flex';
-    picker.innerHTML = allUsers.map(u => {
-      const isActive = journalFilter.userId === u.id ? ' active' : '';
-      return `<button class="cc-user-pick-btn${isActive}" onclick="setUserFilter('${u.id}')">${ubadgeHTML(u.id)}${u.name}</button>`;
-    }).join('');
-  } else {
-    picker.style.display = 'none';
-  }
+  if (picker) picker.style.display = 'none';
 }
 
 function setJournalFilter(type) {
   journalFilter = { type, userId: null };
-  renderJournalFilter();
-  renderJournal();
-}
-function toggleUserPicker() {
-  if (journalFilter.type === 'user') journalFilter = { type: 'all', userId: null };
-  else journalFilter = { type: 'user', userId: null, _pickerOpen: true };
-  renderJournalFilter();
-  renderJournal();
-}
-function setUserFilter(userId) {
-  journalFilter = { type: 'user', userId };
   renderJournalFilter();
   renderJournal();
 }
@@ -1077,13 +1063,15 @@ function renderJournal() {
     const cloneBtn = isOther ? `<button class="cc-clone-btn" onclick="event.stopPropagation();cloneBrew('${r.dbId}')">Cloner</button>` : '';
     const badge = r.user_id ? ubadgeHTML(r.user_id) : '';
     const vdot = r.extraction_verdict ? `<div class="cc-verdict-dot" style="color:${verdictDotColor(r.extraction_verdict)};background:${verdictDotColor(r.extraction_verdict)};"></div>` : '';
+    const photoThumb = r.photo ? `<div class="cc-journal-photo"><img src="${r.photo}" alt=""></div>` : '';
+    const commentsBadge = r.comments && r.comments.length ? `<span title="Commentaires" style="display:inline-flex;align-items:center;gap:3px;color:var(--fg-muted);"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H7l-3 3v-3a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.3"/></svg>${r.comments.length}</span>` : '';
     d.innerHTML = `
       <button class="cc-fav-btn" onclick="event.stopPropagation();togFav(${myIdx})" style="color:${r.fav ? 'var(--copper)' : 'var(--fg-ghost)'};">${r.fav ? '♥' : '♡'}</button>
       <div class="cc-journal-head">
         <div style="display:flex;align-items:flex-start;gap:10px;flex:1;min-width:0;padding-right:28px;">
-          ${badge}
+          ${photoThumb || badge}
           <div style="flex:1;min-width:0;">
-            <div class="cc-journal-title">${r.ct}</div>
+            <div style="display:flex;align-items:center;gap:6px;">${photoThumb ? badge : ''}<div class="cc-journal-title">${r.ct}</div></div>
             <div class="cc-journal-sub">${r.name}${r.cn ? ' · ' + r.cn : ''}${r.ro ? ' · ' + r.ro : ''}</div>
           </div>
         </div>
@@ -1093,6 +1081,7 @@ function renderJournal() {
         <span class="cc-stars">${stars}</span>
         <span>·</span>
         <span><span class="mv">${(r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1))}g</span> → ${r.brew_time_s ? fmtSec(r.brew_time_s) : '—'}</span>
+        ${commentsBadge ? `<span>·</span>${commentsBadge}` : ''}
         <span style="margin-left:auto;color:var(--fg-ghost);">${r.date.slice(5)}</span>
         ${cloneBtn}
       </div>`;
@@ -1167,8 +1156,21 @@ function showDet(i) {
   })() : '';
   const beanLinked = r.beanId ? beanById(r.beanId) : null;
   const beanHTML = beanLinked ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Sac de café</div><div style="display:flex;align-items:center;gap:12px;">${beanBagSVG(beanLinked.color, beanLinked.roast, 40)}<div><div style="font-family:'Fraunces',serif;font-size:15px;">${beanLinked.name}</div><div style="font-size:11px;color:var(--fg-muted);">${beanLinked.roaster || ''}</div></div></div></div>` : '';
+  const photoHTML = r.photo ? `<div class="cc-detail-photo"><img src="${r.photo}" alt=""></div>` : '';
+  const isMineDet = currentUser && r.user_id === currentUser.id;
+  // Comments section : visible for everyone (read), input for current user
+  const commentsHTML = `
+    <div class="cc-card tight cc-mb-10">
+      <div class="cc-label">Commentaires${(r.comments||[]).length ? ' · ' + r.comments.length : ''}</div>
+      <div id="comments-thread" class="cc-chat"></div>
+      ${currentUser ? `<div class="cc-chat-input-row">
+        <input type="text" id="comment-input" class="cc-input" placeholder="Écris un message..." onkeydown="if(event.key==='Enter') addComment('${r.dbId}')">
+        <button class="cc-chat-send" onclick="addComment('${r.dbId}')">Envoyer</button>
+      </div>` : ''}
+    </div>`;
   c.innerHTML = `
     ${vrdHTML}
+    ${photoHTML}
     <div class="cc-card tight cc-mb-10">
       <div class="cc-display" style="font-size:22px;margin-bottom:4px;">${r.ct}</div>
       <div style="font-size:13px;color:var(--fg-muted);display:flex;align-items:center;">${r.name} · ${r.catName}${userTag}</div>
@@ -1187,8 +1189,13 @@ function showDet(i) {
     ${grindHTML}
     ${r.fl ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}
     ${r.ar && r.ar.length ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${r.ar.map(a => `<span class="cc-tag on">${a}</span>`).join('')}</div></div>` : ''}
-    ${r.notes ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Notes</div><div style="font-size:13px;color:var(--fg-muted);line-height:1.6;">${r.notes}</div></div>` : ''}`;
+    ${r.notes ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Notes</div><div style="font-size:13px;color:var(--fg-muted);line-height:1.6;">${r.notes}</div></div>` : ''}
+    ${commentsHTML}`;
   if (r.fl) { const w = document.getElementById('det-wh'); if (w) drawDW(w, r.fl); }
+  renderCommentsThread(r);
+  // Hide delete button when viewing other users' brews
+  const delBtn = document.getElementById('det-delete-btn');
+  if (delBtn) delBtn.style.display = isMineDet ? 'block' : 'none';
   showScreen('detail');
 }
 
@@ -1223,7 +1230,7 @@ function showScreen(n) {
   document.getElementById('screen-' + n).classList.add('active');
   window.scrollTo(0, 0);
   // Bottom nav visible on main screens
-  const navScreens = ['home', 'beans', 'patch'];
+  const navScreens = ['home', 'beans', 'patch', 'coach'];
   const nav = document.getElementById('bottom-nav');
   if (nav) {
     nav.style.display = navScreens.includes(n) ? 'flex' : 'none';
@@ -1236,6 +1243,7 @@ function showScreen(n) {
 function navTo(n) {
   if (n === 'home') goHome();
   else if (n === 'beans') openBeans();
+  else if (n === 'coach') coachOpen();
   else if (n === 'patch') { renderPatchNotes(true); showScreen('patch'); }
 }
 
@@ -1449,6 +1457,197 @@ function renderPatchNotes(manual) {
 function finishPatchNotes() {
   localStorage.setItem('cc_last_seen_version', APP_VERSION);
   goHome();
+}
+
+// ── Photo (tasting capture) ──
+async function onPhotoPicked(ev) {
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  try {
+    const dataUrl = await compressImage(file, 800, 0.7);
+    tPhoto = dataUrl;
+    refreshPhotoUI();
+  } catch (e) {
+    console.error('Photo compression failed', e);
+    alert('Impossible de charger cette image.');
+  }
+  ev.target.value = ''; // allow re-pick of same file
+}
+function clearPhoto() {
+  tPhoto = null;
+  refreshPhotoUI();
+}
+function refreshPhotoUI() {
+  const img = document.getElementById('photo-preview');
+  const empty = document.getElementById('photo-empty');
+  const actions = document.getElementById('photo-actions');
+  if (!img || !empty || !actions) return;
+  if (tPhoto) {
+    img.src = tPhoto;
+    img.style.display = 'block';
+    empty.style.display = 'none';
+    actions.style.display = 'flex';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    empty.style.display = 'flex';
+    actions.style.display = 'none';
+  }
+}
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const r = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const w = Math.round(img.width * r);
+        const h = Math.round(img.height * r);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Comments (chat-style) ──
+async function addComment(dbId) {
+  if (!currentUser) return;
+  const input = document.getElementById('comment-input');
+  if (!input) return;
+  const text = (input.value || '').trim();
+  if (!text) return;
+  const idx = my.findIndex(r => r.dbId === dbId);
+  if (idx < 0) return;
+  const comment = {
+    user_id: currentUser.id,
+    user_name: currentUser.name,
+    text,
+    ts: Date.now()
+  };
+  // Optimistic UI
+  const updated = [...(my[idx].comments || []), comment];
+  my[idx].comments = updated;
+  input.value = '';
+  renderCommentsThread(my[idx]);
+  // Persist : merge into flavor_profile (preserve other keys)
+  try {
+    const { data: row } = await sb.from('brews').select('flavor_profile').eq('id', dbId).single();
+    const fp = (row && row.flavor_profile) || {};
+    fp.comments = updated;
+    await sb.from('brews').update({ flavor_profile: fp }).eq('id', dbId);
+  } catch (e) {
+    console.error('Comment save failed', e);
+  }
+}
+function renderCommentsThread(brew) {
+  const c = document.getElementById('comments-thread');
+  if (!c) return;
+  const list = brew.comments || [];
+  if (!list.length) {
+    c.innerHTML = `<div class="cc-chat-empty">Sois le premier à commenter cette recette.</div>`;
+    return;
+  }
+  c.innerHTML = list.map(m => {
+    const mine = currentUser && m.user_id === currentUser.id;
+    const u = usersById[m.user_id];
+    const col = userColorFor(u);
+    const initials = userInitialsFor(u || { name: m.user_name });
+    const timeStr = new Date(m.ts).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="cc-chat-msg ${mine ? 'me' : 'other'}">
+      <div class="cc-chat-meta">
+        <span class="cc-ubadge" style="background:linear-gradient(135deg, ${col}, ${col}99);width:18px;height:18px;font-size:8px;">${initials}</span>
+        <span class="author">${m.user_name || (u?.name) || '—'}</span>
+        <span>· ${timeStr}</span>
+      </div>
+      <div class="cc-chat-bubble">${escapeHtml(m.text)}</div>
+    </div>`;
+  }).join('');
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ── Coach IA (placeholder) ──
+function coachOpen() {
+  if (!coachMessages.length) {
+    coachMessages.push({
+      from: 'bot',
+      text: `Salut ${currentUser ? currentUser.name : ''} ! Je suis ton coach barista. Pose-moi tes questions sur l'extraction, les ratios ou tes grains — je commence simple, je m'enrichirai bientôt avec ton journal pour donner des conseils sur mesure.`,
+      ts: Date.now()
+    });
+  }
+  renderCoachFeed();
+  showScreen('coach');
+}
+function renderCoachFeed() {
+  const c = document.getElementById('coach-feed');
+  if (!c) return;
+  c.innerHTML = coachMessages.map(m => {
+    const me = m.from === 'me';
+    const author = me ? (currentUser?.name || 'Moi') : 'Barista IA';
+    const col = me ? userColorFor(currentUser) : '#c77a4a';
+    const initials = me ? userInitialsFor(currentUser) : 'B';
+    const timeStr = new Date(m.ts).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="cc-chat-msg ${me ? 'me' : 'other'}">
+      <div class="cc-chat-meta">
+        <span class="cc-ubadge" style="background:linear-gradient(135deg, ${col}, ${col}99);width:18px;height:18px;font-size:8px;">${initials}</span>
+        <span class="author">${author}</span>
+        <span>· ${timeStr}</span>
+      </div>
+      <div class="cc-chat-bubble">${escapeHtml(m.text)}</div>
+    </div>`;
+  }).join('');
+  // Scroll to bottom
+  const screen = document.getElementById('screen-coach');
+  if (screen) screen.scrollTop = screen.scrollHeight;
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function coachAsk(q) {
+  document.getElementById('coach-input').value = q;
+  coachSend();
+}
+function coachSend() {
+  const inp = document.getElementById('coach-input');
+  const text = (inp.value || '').trim();
+  if (!text) return;
+  coachMessages.push({ from: 'me', text, ts: Date.now() });
+  inp.value = '';
+  renderCoachFeed();
+  // Fake "thinking" then canned answer
+  setTimeout(() => {
+    coachMessages.push({ from: 'bot', text: coachAnswer(text), ts: Date.now() });
+    renderCoachFeed();
+  }, 600);
+}
+function coachAnswer(q) {
+  const t = q.toLowerCase();
+  if (t.includes('amer') || t.includes('over') || t.includes('sur-extr')) {
+    return "Sur-extraction probable. Essaie d'augmenter ta mouture (plus grossier de 1-2 crans), ou réduis le temps d'extraction de 3-5s. Vérifie aussi que ton ratio n'est pas trop élevé (1:2.5 max pour un espresso).";
+  }
+  if (t.includes('acide') || t.includes('aigre') || t.includes('sous-extr') || t.includes('under')) {
+    return "Sous-extraction. Mouds plus fin (1-2 crans), augmente la dose de 0.5-1g, ou prolonge l'extraction de 3-5s. Une eau plus chaude (95-96°C) aide aussi.";
+  }
+  if (t.includes('ratio') && (t.includes('v60') || t.includes('pour over'))) {
+    return "V60 classique : ratio 1:16 (15g pour 240ml) avec mouture moyen-fin. Pour des saveurs plus vives, va jusqu'à 1:17. Eau à 92-96°C, 4 versements en 2:30 total.";
+  }
+  if (t.includes('ratio') && t.includes('chemex')) {
+    return "Chemex : 1:15 à 1:17 avec mouture moyen-grossier. Compte 30-35g de café pour 500ml. Bloom 35s puis 4 versements lents (~4:30 total).";
+  }
+  if (t.includes('mouture') || t.includes('grind')) {
+    return "Si trop amer → mouture plus grossière. Si trop acide ou aqueux → plus fine. Sur Baratza Encore : 8 pour espresso, 14-16 pour V60, 22-24 pour Chemex, 30+ pour French press.";
+  }
+  if (t.includes('lait') || t.includes('mousse') || t.includes('latte')) {
+    return "Lait à 3.5% MG donne la meilleure microfousse. Vise 60-65°C max — au-delà, le lait brûle et perd sa douceur. Pour un latte art propre : verse à 5cm de la surface, puis baisse rapidement le pot pour faire émerger le motif.";
+  }
+  return "Bonne question ! Cette fonctionnalité IA arrivera bientôt — je serai connecté à ton historique de brews pour des conseils sur mesure. Pour l'instant, essaie de poser une question sur l'extraction (amer, acide), un ratio, ou une mouture.";
 }
 
 // ── Init ──

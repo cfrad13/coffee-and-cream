@@ -1,4 +1,4 @@
-const CACHE_NAME = 'coffee-cream-v11.4';
+const CACHE_NAME = 'coffee-cream-v12.0';
 // Chemins relatifs — résolus contre l'URL du service worker, donc marchent à
 // la fois sur Netlify (déployé à `/`) et sur GitHub Pages (`/coffee-and-cream/`)
 const ASSETS = [
