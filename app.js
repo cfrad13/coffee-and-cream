@@ -1650,8 +1650,32 @@ function coachAnswer(q) {
   return "Bonne question ! Cette fonctionnalité IA arrivera bientôt — je serai connecté à ton historique de brews pour des conseils sur mesure. Pour l'instant, essaie de poser une question sur l'extraction (amer, acide), un ratio, ou une mouture.";
 }
 
+// ── NEW badge (one-shot dismissal on first hover or click) ──
+function initBaristaBadge() {
+  const badge = document.getElementById('badge-coach-new');
+  if (!badge) return;
+  if (localStorage.getItem('cc_seen_barista_new') === '1') {
+    badge.style.display = 'none';
+    return;
+  }
+  const navBtn = badge.closest('.cc-bnav-item');
+  if (!navBtn) return;
+  const dismiss = () => {
+    localStorage.setItem('cc_seen_barista_new', '1');
+    badge.style.transition = 'opacity .25s ease, transform .25s ease';
+    badge.style.opacity = '0';
+    badge.style.transform = 'translate(-150%, -10px) scale(0.7)';
+    setTimeout(() => { badge.style.display = 'none'; }, 260);
+    navBtn.removeEventListener('mouseenter', dismiss);
+    navBtn.removeEventListener('click', dismiss);
+  };
+  navBtn.addEventListener('mouseenter', dismiss);
+  navBtn.addEventListener('click', dismiss);
+}
+
 // ── Init ──
 initApp();
+initBaristaBadge();
 
 // Register SW
 if ('serviceWorker' in navigator) {
