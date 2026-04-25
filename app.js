@@ -772,6 +772,15 @@ function renderRat() {
 }
 
 // ── Flavor wheel ──
+// Helper : construit le path d'un wedge entre rayons r1→r2 et angles a1→a2
+function wedgePath(cx, cy, r1, r2, a1, a2) {
+  const x1 = cx + r1 * Math.cos(a1), y1 = cy + r1 * Math.sin(a1);
+  const x2 = cx + r2 * Math.cos(a1), y2 = cy + r2 * Math.sin(a1);
+  const x3 = cx + r2 * Math.cos(a2), y3 = cy + r2 * Math.sin(a2);
+  const x4 = cx + r1 * Math.cos(a2), y4 = cy + r1 * Math.sin(a2);
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)} L${x2.toFixed(2)} ${y2.toFixed(2)} A${r2.toFixed(2)} ${r2.toFixed(2)} 0 0 1 ${x3.toFixed(2)} ${y3.toFixed(2)} L${x4.toFixed(2)} ${y4.toFixed(2)} A${r1.toFixed(2)} ${r1.toFixed(2)} 0 0 0 ${x1.toFixed(2)} ${y1.toFixed(2)} Z`;
+}
+
 function drawW() {
   const svg = document.getElementById('fw'), cx = 130, cy = 130, inner = 45, outer = 115, n = FL.length;
   let h = `<defs>`;
@@ -785,21 +794,22 @@ function drawW() {
     const a2 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2;
     const val = FV[f] || 0;
     const r = inner + (outer - inner) * (val / 5);
-    const x1 = cx + inner * Math.cos(a1), y1 = cy + inner * Math.sin(a1);
-    const x2 = cx + r * Math.cos(a1), y2 = cy + r * Math.sin(a1);
-    const x3 = cx + r * Math.cos(a2), y3 = cy + r * Math.sin(a2);
-    const x4 = cx + inner * Math.cos(a2), y4 = cy + inner * Math.sin(a2);
     const la = (a1 + a2) / 2;
     const lx = cx + (outer + 10) * Math.cos(la);
     const ly = cy + (outer + 10) * Math.sin(la);
     h += `<g data-flavor="${f}" style="cursor:pointer;">`;
-    h += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${x3.toFixed(1)} ${y3.toFixed(1)} L${x4.toFixed(1)} ${y4.toFixed(1)} A${inner} ${inner} 0 0 0 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${val > 0 ? 'url(#fw' + i + ')' : 'rgba(210,175,135,0.08)'}" stroke="rgba(15,10,7,0.6)" stroke-width="1.5"/>`;
+    // Hit target : wedge complet inner→outer, toujours cliquable
+    h += `<path d="${wedgePath(cx, cy, inner, outer, a1, a2)}" fill="rgba(210,175,135,0.06)" stroke="rgba(210,175,135,0.18)" stroke-width="1"/>`;
+    // Wedge rempli pour la valeur (par-dessus, pointer-events désactivés pour pas voler le clic)
+    if (val > 0) {
+      h += `<path d="${wedgePath(cx, cy, inner, r, a1, a2)}" fill="url(#fw${i})" stroke="rgba(15,10,7,0.6)" stroke-width="1.5" style="pointer-events:none;"/>`;
+    }
     h += `<text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" dominant-baseline="middle" fill="${val > 0 ? '#e9a962' : '#7a6b5a'}" font-size="9" font-family="Inter" style="pointer-events:none;">${f}</text>`;
     h += `</g>`;
   }
-  h += `<circle cx="${cx}" cy="${cy}" r="${inner - 2}" fill="${currentTheme === 'dark' ? '#181210' : '#fcf5e4'}" stroke="rgba(210,175,135,0.12)"/>`;
-  h += `<text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="#e9a962" font-family="Fraunces" font-size="11" font-style="italic">saveurs</text>`;
-  h += `<text x="${cx}" y="${cy + 10}" text-anchor="middle" fill="#7a6b5a" font-size="8" letter-spacing="1.5">TAP TO RATE</text>`;
+  h += `<circle cx="${cx}" cy="${cy}" r="${inner - 2}" fill="${currentTheme === 'dark' ? '#181210' : '#fcf5e4'}" stroke="rgba(210,175,135,0.12)" style="pointer-events:none;"/>`;
+  h += `<text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="#e9a962" font-family="Fraunces" font-size="11" font-style="italic" style="pointer-events:none;">saveurs</text>`;
+  h += `<text x="${cx}" y="${cy + 10}" text-anchor="middle" fill="#7a6b5a" font-size="8" letter-spacing="1.5" style="pointer-events:none;">TAP TO RATE</text>`;
   svg.innerHTML = h;
   svg.querySelectorAll('g[data-flavor]').forEach(g => {
     g.addEventListener('click', () => {
@@ -821,11 +831,12 @@ function drawDW(el, vals) {
     const a2 = ((i + 1) / n) * 2 * Math.PI - Math.PI / 2;
     const val = vals[f] || 0;
     const r = inner + (outer - inner) * (val / 5);
-    const x1 = cx + inner * Math.cos(a1), y1 = cy + inner * Math.sin(a1);
-    const x2 = cx + r * Math.cos(a1), y2 = cy + r * Math.sin(a1);
-    const x3 = cx + r * Math.cos(a2), y3 = cy + r * Math.sin(a2);
-    const x4 = cx + inner * Math.cos(a2), y4 = cy + inner * Math.sin(a2);
-    h += `<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${x3.toFixed(1)} ${y3.toFixed(1)} L${x4.toFixed(1)} ${y4.toFixed(1)} A${inner} ${inner} 0 0 0 ${x1.toFixed(1)} ${y1.toFixed(1)} Z" fill="${val > 0 ? 'url(#dw' + i + ')' : 'rgba(210,175,135,0.08)'}" stroke="rgba(15,10,7,0.6)" stroke-width="1"/>`;
+    // Wedge complet en arrière-plan
+    h += `<path d="${wedgePath(cx, cy, inner, outer, a1, a2)}" fill="rgba(210,175,135,0.06)" stroke="rgba(210,175,135,0.18)" stroke-width="0.8"/>`;
+    // Wedge rempli pour la valeur
+    if (val > 0) {
+      h += `<path d="${wedgePath(cx, cy, inner, r, a1, a2)}" fill="url(#dw${i})" stroke="rgba(15,10,7,0.6)" stroke-width="1"/>`;
+    }
   }
   h += `<circle cx="${cx}" cy="${cy}" r="${inner - 2}" fill="${currentTheme === 'dark' ? '#181210' : '#fcf5e4'}" stroke="rgba(210,175,135,0.12)"/>`;
   h += `</svg>`;
