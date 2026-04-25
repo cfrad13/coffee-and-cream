@@ -1064,7 +1064,7 @@ function renderJournal() {
     const badge = r.user_id ? ubadgeHTML(r.user_id) : '';
     const vdot = r.extraction_verdict ? `<div class="cc-verdict-dot" style="color:${verdictDotColor(r.extraction_verdict)};background:${verdictDotColor(r.extraction_verdict)};"></div>` : '';
     const photoThumb = r.photo ? `<div class="cc-journal-photo"><img src="${r.photo}" alt=""></div>` : '';
-    const commentsBadge = r.comments && r.comments.length ? `<span title="Commentaires" style="display:inline-flex;align-items:center;gap:3px;color:var(--fg-muted);"><svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H7l-3 3v-3a2 2 0 01-2-2V4z" stroke="currentColor" stroke-width="1.3"/></svg>${r.comments.length}</span>` : '';
+    const commentsBadge = r.comments && r.comments.length ? `<span title="Commentaires" style="display:inline-flex;align-items:center;gap:4px;color:#ff7a3d;font-weight:600;"><svg width="13" height="13" viewBox="0 0 16 16" fill="#ff7a3d" stroke="#ff7a3d" stroke-width="1.2" style="filter:drop-shadow(0 0 4px rgba(255,122,61,0.45));"><path d="M2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H7l-3 3v-3a2 2 0 01-2-2V4z" stroke-linejoin="round"/></svg>${r.comments.length}</span>` : '';
     d.innerHTML = `
       <button class="cc-fav-btn" onclick="event.stopPropagation();togFav(${myIdx})" style="color:${r.fav ? 'var(--copper)' : 'var(--fg-ghost)'};">${r.fav ? '♥' : '♡'}</button>
       <div class="cc-journal-head">
@@ -1156,7 +1156,6 @@ function showDet(i) {
   })() : '';
   const beanLinked = r.beanId ? beanById(r.beanId) : null;
   const beanHTML = beanLinked ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Sac de café</div><div style="display:flex;align-items:center;gap:12px;">${beanBagSVG(beanLinked.color, beanLinked.roast, 40)}<div><div style="font-family:'Fraunces',serif;font-size:15px;">${beanLinked.name}</div><div style="font-size:11px;color:var(--fg-muted);">${beanLinked.roaster || ''}</div></div></div></div>` : '';
-  const photoHTML = r.photo ? `<div class="cc-detail-photo"><img src="${r.photo}" alt=""></div>` : '';
   const isMineDet = currentUser && r.user_id === currentUser.id;
   // Comments section : visible for everyone (read), input for current user
   const commentsHTML = `
@@ -1170,7 +1169,6 @@ function showDet(i) {
     </div>`;
   c.innerHTML = `
     ${vrdHTML}
-    ${photoHTML}
     <div class="cc-card tight cc-mb-10">
       <div class="cc-display" style="font-size:22px;margin-bottom:4px;">${r.ct}</div>
       <div style="font-size:13px;color:var(--fg-muted);display:flex;align-items:center;">${r.name} · ${r.catName}${userTag}</div>
@@ -1183,14 +1181,14 @@ function showDet(i) {
       <div class="cc-stat"><div class="v">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="l">ratio</div></div>
       <div class="cc-stat"><div class="v">${r.yield}</div><div class="l">ml</div></div>
     </div>
+    ${commentsHTML}
     ${beanHTML}
     ${!beanLinked ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Café</div><div style="font-family:'Fraunces',serif;font-size:15px;">${r.cn || 'Non spécifié'}</div>${r.ro ? `<div style="font-size:12px;color:var(--fg-muted);margin-top:3px;">${r.ro}</div>` : ''}${r.or ? `<div style="font-size:12px;color:var(--fg-dim);margin-top:2px;">Origine : ${r.or}</div>` : ''}</div>` : ''}
     ${liqHTML}
     ${grindHTML}
     ${r.fl ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Roue des saveurs</div><div id="det-wh"></div></div>` : ''}
     ${r.ar && r.ar.length ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Arômes</div><div style="display:flex;flex-wrap:wrap;gap:6px;">${r.ar.map(a => `<span class="cc-tag on">${a}</span>`).join('')}</div></div>` : ''}
-    ${r.notes ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Notes</div><div style="font-size:13px;color:var(--fg-muted);line-height:1.6;">${r.notes}</div></div>` : ''}
-    ${commentsHTML}`;
+    ${r.notes ? `<div class="cc-card tight cc-mb-10"><div class="cc-label">Notes</div><div style="font-size:13px;color:var(--fg-muted);line-height:1.6;">${r.notes}</div></div>` : ''}`;
   if (r.fl) { const w = document.getElementById('det-wh'); if (w) drawDW(w, r.fl); }
   renderCommentsThread(r);
   // Hide delete button when viewing other users' brews
@@ -1592,7 +1590,7 @@ function renderCoachFeed() {
   if (!c) return;
   c.innerHTML = coachMessages.map(m => {
     const me = m.from === 'me';
-    const author = me ? (currentUser?.name || 'Moi') : 'Barista IA';
+    const author = me ? (currentUser?.name || 'Moi') : 'BaristIA';
     const col = me ? userColorFor(currentUser) : '#c77a4a';
     const initials = me ? userInitialsFor(currentUser) : 'B';
     const timeStr = new Date(m.ts).toLocaleTimeString('fr-CA', { hour: '2-digit', minute: '2-digit' });

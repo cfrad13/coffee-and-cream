@@ -73,6 +73,24 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* iOS Safari : prevent auto-zoom on focus by ensuring inputs are >= 16px on mobile */
+@media (max-width: 768px) {
+  .cc-input,
+  .cc-textarea,
+  .cc-liq-input,
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 html, body {
   margin: 0; padding: 0;
   background: var(--bg-deep);
