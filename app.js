@@ -1195,6 +1195,10 @@ function showDet(i) {
         <button class="cc-chat-send" onclick="addComment('${r.dbId}')">Envoyer</button>
       </div>` : ''}
     </div>`;
+  const canRebrew = r.cat && r.key && RR[r.cat] && RR[r.cat].subs[r.key];
+  const rebrewBtn = canRebrew
+    ? `<button class="cc-btn-primary cc-tap cc-mb-10" onclick="rebrew(${i})" style="display:flex;align-items:center;justify-content:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M5 3v3M15 3v3M5 6h10M6 6l1 9a2 2 0 002 2h2a2 2 0 002-2l1-9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>Préparer l'extraction</button>`
+    : '';
   c.innerHTML = `
     ${vrdHTML}
     <div class="cc-card tight cc-mb-10">
@@ -1204,6 +1208,7 @@ function showDet(i) {
       <div style="margin-top:10px;display:flex;gap:2px;">${st}</div>
       ${cloneBtnDet}
     </div>
+    ${rebrewBtn}
     <div class="cc-stats-grid">
       <div class="cc-stat"><div class="v">${r.dose % 1 === 0 ? r.dose : r.dose.toFixed(1)}</div><div class="l">g café</div></div>
       <div class="cc-stat"><div class="v">1:${typeof r.ratio === 'number' ? r.ratio.toFixed(1) : r.ratio}</div><div class="l">ratio</div></div>
@@ -1223,6 +1228,74 @@ function showDet(i) {
   const delBtn = document.getElementById('det-delete-btn');
   if (delBtn) delBtn.style.display = isMineDet ? 'block' : 'none';
   showScreen('detail');
+}
+
+// Recharge une recette sauvegardée dans l'écran Recipe pour la reproduire
+function rebrew(i) {
+  const r = my[i];
+  if (!r) return;
+  if (!r.cat || !r.key || !RR[r.cat] || !RR[r.cat].subs[r.key]) {
+    alert('Cette recette ne peut pas être rejouée (méthode introuvable).');
+    return;
+  }
+  // 1) Setup de base via selRec (charge la sous-méthode + crée les sliders/grinder/liquides)
+  selRec(r.cat, r.key);
+
+  // 2) Override grinder + recalc slider grind
+  if (r.grinder && GRINDERS[r.grinder] && r.grinder !== currentGrinder) {
+    currentGrinder = r.grinder;
+    localStorage.setItem('cc_grinder', currentGrinder);
+    renderGrinderSelector('grinder-sel', 'main');
+    applyGrinderToSlider('main');
+  }
+
+  // 3) Override sliders dose & ratio
+  const ds = document.getElementById('dose-slider');
+  const rs = document.getElementById('ratio-slider');
+  if (ds && r.dose != null) ds.value = r.dose;
+  if (rs && r.ratio != null) rs.value = r.ratio;
+
+  // 4) Override grind size + time
+  const gs = document.getElementById('grind-size');
+  if (gs && r.gs != null) {
+    gs.value = r.gs;
+    updGrindLabel('grind-size', 'grind-size-val');
+  }
+  const gt = document.getElementById('grind-time');
+  if (gt) gt.value = r.gt || '';
+
+  // 5) Override liquides (par nom)
+  if (r.liqs && Object.keys(r.liqs).length) {
+    document.querySelectorAll('#liquid-fields .cc-liq-row').forEach(row => {
+      const label = row.querySelector('.cc-liq-label')?.textContent;
+      const val = r.liqs[label];
+      if (val != null) {
+        const sl = row.querySelector('input[type=range]');
+        const ip = row.querySelector('input[type=number]');
+        if (sl) sl.value = val;
+        if (ip) ip.value = val;
+        curLiquids[label] = val;
+      }
+    });
+  }
+
+  // 6) Override bean / coffee custom
+  if (r.beanId && beanById(r.beanId)) {
+    selectedBeanId = r.beanId;
+  } else if (r.cn || r.ro || r.or) {
+    selectedBeanId = '__custom__';
+    const cnEl = document.getElementById('coffee-name');
+    const roEl = document.getElementById('coffee-roaster');
+    const orEl = document.getElementById('coffee-origin');
+    if (cnEl) cnEl.value = r.cn || '';
+    if (roEl) roEl.value = r.ro || '';
+    if (orEl) orEl.value = r.or || '';
+  }
+  renderBeanPicker();
+
+  // 7) Refresh des stats du haut
+  updRec();
+  // selRec a déjà fait showScreen('recipe')
 }
 
 async function delRec() {
