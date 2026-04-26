@@ -322,8 +322,8 @@
     <div class="cc-timer-btn-row">
       <button id="btn-start" onclick="toggleTimer()" class="cc-btn-primary cc-tap">Démarrer</button>
       <button onclick="resetTimer()" class="cc-btn-secondary cc-tap">Reset</button>
-      <button id="btn-next" onclick="goToSmoke()" class="cc-btn-secondary cc-tap" style="display:none;background:var(--copper);color:var(--btn-fg);">→</button>
     </div>
+    <button id="btn-next" onclick="jumpToTasting()" class="cc-btn-primary cc-tap" style="display:none;margin-top:10px;background:linear-gradient(180deg, #7fae6e 0%, #4f7a40 100%);">→ Dégustation</button>
   </div>
 </div>
 
@@ -412,24 +412,6 @@
         <div class="cc-aw"><input type="text" id="qc-cn" placeholder="Nom du café..." class="cc-input" autocomplete="off" oninput="showAC(this,'qcn')"><div id="ac-qcn" class="cc-ad"></div></div>
         <div class="cc-aw" style="margin-top:8px;"><input type="text" id="qc-ro" placeholder="Torréfacteur" class="cc-input" autocomplete="off" oninput="showAC(this,'qro')"><div id="ac-qro" class="cc-ad"></div></div>
         <input type="text" id="qc-or" placeholder="Origine" class="cc-input" style="margin-top:8px;">
-      </div>
-    </div>
-
-    <div class="cc-card tight cc-mb-10">
-      <div class="cc-label">Photo de la tasse</div>
-      <label class="cc-photo-card" id="photo-card" for="photo-input">
-        <div class="cc-photo-empty" id="photo-empty">
-          <div class="cam">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3 8a2 2 0 012-2h2l1.5-2h7L17 6h2a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" stroke="currentColor" stroke-width="1.5"/></svg>
-          </div>
-          <span>Toucher pour prendre une photo</span>
-        </div>
-        <img id="photo-preview" style="display:none;" alt="Aperçu">
-      </label>
-      <input type="file" id="photo-input" accept="image/*" capture="environment" style="display:none;" onchange="onPhotoPicked(event)">
-      <div class="cc-photo-actions" id="photo-actions" style="display:none;">
-        <button onclick="document.getElementById('photo-input').click()">Reprendre</button>
-        <button onclick="clearPhoto()">Retirer</button>
       </div>
     </div>
 

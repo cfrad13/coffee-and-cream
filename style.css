@@ -652,6 +652,18 @@ body::before {
   100% { opacity: 0;    transform: translate(-6px, -100px) scaleY(1.3) scaleX(2) skewX(-3deg); }
 }
 
+/* Light theme: smoke is dark/black on cream paper (multiply blend instead of screen) */
+[data-theme="light"] .cc-steam {
+  background: linear-gradient(to top,
+    rgba(45,32,22,0.55) 0%,
+    rgba(55,40,28,0.46) 15%,
+    rgba(70,52,38,0.34) 35%,
+    rgba(85,68,52,0.20) 60%,
+    rgba(100,82,66,0.08) 80%,
+    transparent 100%);
+  mix-blend-mode: multiply;
+}
+
 /* ─── CREATE CTA ─── */
 .cc-create-btn {
   width: 100%;

@@ -650,11 +650,16 @@ function renderTS() {
 
 function toggleTimer() {
   if (run) {
+    // Pause
     clearInterval(tI); run = false;
     document.getElementById('btn-start').textContent = 'Reprendre';
+    // Si on a déjà extrait quelque chose, propose d'aller à la dégustation
+    if (el > 0) document.getElementById('btn-next').style.display = 'block';
   } else {
+    // Démarrer / Reprendre
     run = true;
     document.getElementById('btn-start').textContent = 'Pause';
+    document.getElementById('btn-next').style.display = 'none';
     tI = setInterval(() => {
       el++;
       updTD();
@@ -665,7 +670,7 @@ function toggleTimer() {
       if (el >= tot) {
         clearInterval(tI); run = false;
         document.getElementById('btn-start').textContent = 'Terminé';
-        document.getElementById('btn-next').style.display = 'inline-flex';
+        document.getElementById('btn-next').style.display = 'block';
         setTimeout(() => showScreen('smoke'), 600);
       }
     }, 1000);
@@ -673,6 +678,12 @@ function toggleTimer() {
 }
 
 function goToSmoke() { showScreen('smoke'); }
+// Saute directement à la dégustation depuis une pause manuelle
+// (préserve `el` pour qu'il devienne brew_time_s + verdict via saveRec)
+function jumpToTasting() {
+  clearInterval(tI); run = false;
+  showTasting();
+}
 
 function resetTimer() {
   clearInterval(tI); el = 0; run = false;
